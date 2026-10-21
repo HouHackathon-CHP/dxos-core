@@ -6,7 +6,7 @@ Headless open-source core for the HouHackathon-CHP OLP 2026 project. This reposi
 | --- | --- | --- |
 | `identity/` | Keycloak realm | OIDC sign-in, roles `citizen` and `operator` |
 | `gateway/` | FastAPI + Keycloak JWKS | JWT validation and routing to internal APIs |
-| `data/` | FastAPI + PostgreSQL + SeaweedFS S3 | Tenant-scoped JSON records and object upload/download |
+| `data/` | FastAPI + PostgreSQL + SeaweedFS S3 | Tenant-scoped JSON records, change history and object upload/download |
 | `workflow/` | FastAPI + PostgreSQL | File-defined JSON workflow, transitions and history |
 
 The `report-handling` definition is only a demonstration of the generic workflow API. The core contains no end-user interface or GreenCity business rules.
@@ -32,7 +32,7 @@ The only published development ports are `127.0.0.1:8000` (API gateway) and `127
 
 ## API sketch
 
-- `POST /api/data/records`, `GET /api/data/records`, `GET /api/data/records/{id}`, `PATCH /api/data/records/{id}`
+- `POST /api/data/records`, `GET /api/data/records`, `GET /api/data/records/{id}`, `PATCH /api/data/records/{id}`, `GET /api/data/records/{id}/history`
 - `POST /api/data/objects?record_id={id}`, `GET /api/data/objects/{id}`
 - `GET /api/workflow/definitions`, `POST /api/workflow/instances`, `GET /api/workflow/instances/{id}`
 - `POST /api/workflow/instances/{id}/actions/{action}`

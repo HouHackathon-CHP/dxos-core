@@ -254,6 +254,17 @@ def main() -> None:
     status, _ = request("GET", f"{GATEWAY}/api/data/records/{record_id}", token=outsider)
     if status != 404:
         raise RuntimeError(f"Cross-tenant record access was not blocked: HTTP {status}")
+    status, updated = request("PATCH", f"{GATEWAY}/api/data/records/{record_id}", token=citizen, data={
+        "payload": {"title": "Sample report updated", "location": {"lat": 21.02, "lon": 105.85}},
+    })
+    require(status, 200, updated)
+    status, history = request("GET", f"{GATEWAY}/api/data/records/{record_id}/history", token=citizen)
+    require(status, 200, history)
+    if [event["action"] for event in history] != ["create", "update"]:
+        raise RuntimeError("Record change history is incomplete")
+    status, _ = request("GET", f"{GATEWAY}/api/data/records/{record_id}/history", token=outsider)
+    if status != 404:
+        raise RuntimeError(f"Cross-tenant record history access was not blocked: HTTP {status}")
 
     body, content_type = multipart_file(b"DX-OS demo attachment")
     status, stored = request(

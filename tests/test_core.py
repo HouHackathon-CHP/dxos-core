@@ -37,6 +37,7 @@ def test_data_tenant_and_owner_isolation(tmp_path, monkeypatch):
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path / 'data.db'}")
     monkeypatch.setenv("INTERNAL_GATEWAY_SECRET", "test-secret")
     data = load_module("dxos_data_test", ROOT / "data/app/main.py")
+    event.listen(data.engine, "connect", lambda connection, _: connection.execute("PRAGMA foreign_keys=ON"))
     with TestClient(data.app) as client:
         assert client.get("/records").status_code == 403
         created = client.post("/records", json={"kind": "report", "payload": {"x": 1}}, headers=headers("alice"))
@@ -47,6 +48,14 @@ def test_data_tenant_and_owner_isolation(tmp_path, monkeypatch):
         assert client.get(f"/records/{record_id}", headers=headers("operator", "tenant-b", "operator")).status_code == 404
         assert len(client.get("/records", headers=headers("alice")).json()) == 1
         assert client.get("/records", headers=headers("bob")).json() == []
+        updated = client.patch(f"/records/{record_id}", json={"payload": {"x": 2}}, headers=headers("alice"))
+        assert updated.status_code == 200
+        history = client.get(f"/records/{record_id}/history", headers=headers("alice"))
+        assert [(row["action"], row["payload"]) for row in history.json()] == [
+            ("create", {"x": 1}), ("update", {"x": 2}),
+        ]
+        assert client.get(f"/records/{record_id}/history", headers=headers("bob")).status_code == 404
+        assert client.get(f"/records/{record_id}/history", headers=headers("operator", "tenant-b", "operator")).status_code == 404
 
 
 def test_workflow_rejects_wrong_role_and_records_history(tmp_path, monkeypatch):

@@ -41,6 +41,18 @@ class Record(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
 
+class RecordEvent(Base):
+    __tablename__ = "record_events"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    record_id: Mapped[str] = mapped_column(String(36), ForeignKey("records.id"), index=True)
+    tenant_id: Mapped[str] = mapped_column(String(128), index=True)
+    action: Mapped[str] = mapped_column(String(16))
+    actor: Mapped[str] = mapped_column(String(128))
+    payload: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
 class StoredObject(Base):
     __tablename__ = "stored_objects"
 
@@ -146,6 +158,11 @@ def create_record(
         created_by=user, created_at=now, updated_at=now,
     )
     db.add(record)
+    db.flush()
+    db.add(RecordEvent(
+        id=str(uuid4()), record_id=record.id, tenant_id=tenant,
+        action="create", actor=user, payload=body.payload, created_at=now,
+    ))
     db.commit()
     return record_dict(record)
 
@@ -187,9 +204,36 @@ def update_record(
     if not record or record.tenant_id != tenant or not may_read(record.created_by, user, roles):
         raise HTTPException(status_code=404, detail="Record not found")
     record.payload = body.payload
-    record.updated_at = datetime.now(timezone.utc)
+    now = datetime.now(timezone.utc)
+    record.updated_at = now
+    db.add(RecordEvent(
+        id=str(uuid4()), record_id=record.id, tenant_id=tenant,
+        action="update", actor=user, payload=body.payload, created_at=now,
+    ))
     db.commit()
     return record_dict(record)
+
+
+@app.get("/records/{record_id}/history")
+def record_history(
+    record_id: str,
+    identity: tuple[str, str, set[str]] = Depends(caller),
+    db: Session = Depends(db_session),
+) -> list[dict]:
+    user, tenant, roles = identity
+    record = db.get(Record, record_id)
+    if not record or record.tenant_id != tenant or not may_read(record.created_by, user, roles):
+        raise HTTPException(status_code=404, detail="Record not found")
+    events = db.scalars(
+        select(RecordEvent)
+        .where(RecordEvent.record_id == record_id, RecordEvent.tenant_id == tenant)
+        .order_by(RecordEvent.created_at, RecordEvent.id)
+    )
+    return [
+        {"action": event.action, "actor": event.actor, "payload": event.payload,
+         "created_at": event.created_at}
+        for event in events
+    ]
 
 
 @app.post("/objects", status_code=201)
