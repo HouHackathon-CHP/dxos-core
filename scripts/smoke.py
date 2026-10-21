@@ -205,12 +205,23 @@ def main() -> None:
     require(status, 200, downloaded)
     if downloaded != b"DX-OS demo attachment":
         raise RuntimeError("Object round-trip failed")
+    status, _ = request("GET", f"{GATEWAY}/api/data/objects/{stored['id']}", token=outsider)
+    if status != 404:
+        raise RuntimeError(f"Cross-tenant object access was not blocked: HTTP {status}")
 
     status, instance = request("POST", f"{GATEWAY}/api/workflow/instances", token=citizen, data={
         "definition_key": "report-handling", "reference_id": record_id,
     })
     require(status, 201, instance)
     instance_id = instance["id"]
+    status, _ = request("GET", f"{GATEWAY}/api/workflow/instances/{instance_id}", token=outsider)
+    if status != 404:
+        raise RuntimeError(f"Cross-tenant workflow access was not blocked: HTTP {status}")
+    status, _ = request(
+        "POST", f"{GATEWAY}/api/workflow/instances/{instance_id}/actions/triage", token=outsider
+    )
+    if status != 404:
+        raise RuntimeError(f"Cross-tenant workflow action was not blocked: HTTP {status}")
     status, _ = request(
         "POST", f"{GATEWAY}/api/workflow/instances/{instance_id}/actions/triage", token=citizen
     )

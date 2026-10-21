@@ -15,6 +15,7 @@ Ngày kiểm tra: 2026-10-22. OSI phê duyệt **giấy phép**, không phê duy
 | Uvicorn, HTTPX | theo `requirements.txt` | BSD-3-Clause | Có |
 | boto3, python-multipart | theo `requirements.txt` | Apache-2.0 | Có |
 | psycopg / psycopg-binary | theo `requirements.txt` | LGPL-3.0-only | Có |
+| GitHub Actions `checkout`, `setup-python` (chỉ CI) | v7 | [MIT](https://github.com/actions/checkout/blob/main/LICENSE), [MIT](https://github.com/actions/setup-python/blob/main/LICENSE) | Có |
 
 Các mã giấy phép trên được đối chiếu với [danh sách chính thức của OSI](https://opensource.org/licenses). Chữ `-only` trong metadata của LGPL chỉ rõ biến thể phiên bản 3, tương ứng giấy phép LGPL 3.0 mà OSI liệt kê.
 
