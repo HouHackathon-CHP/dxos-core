@@ -124,6 +124,42 @@ def ensure_tenant_profile(admin: str) -> None:
     require(status, 200, result)
 
 
+def ensure_web_client(admin: str) -> None:
+    """Provision the separate browser client on existing local realms."""
+    base = f"{IDENTITY}/admin/realms/dxos"
+    definition = next(
+        client for client in json.loads((ROOT / "identity/realm.json").read_text(encoding="utf-8"))["clients"]
+        if client["clientId"] == "dxos-web"
+    )
+    url = f"{base}/clients?clientId=dxos-web"
+    status, clients = request("GET", url, token=admin)
+    require(status, 200, clients)
+    if not clients:
+        status, result = request("POST", f"{base}/clients", token=admin, data=definition)
+        require(status, 201, result)
+        status, clients = request("GET", url, token=admin)
+        require(status, 200, clients)
+    if len(clients) != 1:
+        raise RuntimeError("Expected one dxos-web client")
+    client_id = clients[0]["id"]
+    status, current = request("GET", f"{base}/clients/{client_id}", token=admin)
+    require(status, 200, current)
+    if not (current.get("publicClient") and current.get("standardFlowEnabled")) or current.get(
+        "directAccessGrantsEnabled"
+    ) or current.get("attributes", {}).get("pkce.code.challenge.method") != "S256":
+        raise RuntimeError("Browser client does not require Authorization Code + PKCE S256")
+    if current.get("redirectUris") != ["http://localhost:3000/*"] or current.get(
+        "webOrigins"
+    ) != ["http://localhost:3000"]:
+        raise RuntimeError("Browser client origins differ from the local configuration")
+    status, mappers = request(
+        "GET", f"{base}/clients/{client_id}/protocol-mappers/models", token=admin
+    )
+    require(status, 200, mappers)
+    if not {"dxos-api-audience", "dxos-tenant-id"}.issubset({item["name"] for item in mappers}):
+        raise RuntimeError("Browser access tokens lack the API audience or tenant mapper")
+
+
 def ensure_user(admin: str, username: str, password: str, role: str, tenant: str) -> None:
     base = f"{IDENTITY}/admin/realms/dxos"
     status, users = request("GET", f"{base}/users?{urlencode({'username': username, 'exact': 'true'})}", token=admin)
@@ -178,6 +214,30 @@ def main() -> None:
     admin = admin_token(values["KEYCLOAK_ADMIN_PASSWORD"])
     ensure_tenant_mapper(admin)
     ensure_tenant_profile(admin)
+    ensure_web_client(admin)
+    preflight = Request(
+        f"{GATEWAY}/api/data/records", method="OPTIONS", headers={
+            "Origin": "http://localhost:3000",
+            "Access-Control-Request-Method": "GET",
+            "Access-Control-Request-Headers": "authorization",
+        },
+    )
+    with urlopen(preflight, timeout=20) as response:
+        if response.status != 200 or response.headers.get("Access-Control-Allow-Origin") != "http://localhost:3000":
+            raise RuntimeError("Browser gateway CORS preflight failed")
+    blocked_preflight = Request(
+        f"{GATEWAY}/api/data/records", method="OPTIONS", headers={
+            "Origin": "https://untrusted.example",
+            "Access-Control-Request-Method": "GET",
+        },
+    )
+    try:
+        urlopen(blocked_preflight, timeout=20)
+    except HTTPError as exc:
+        if exc.code != 400:
+            raise RuntimeError(f"Unexpected CORS response for another origin: {exc.code}") from exc
+    else:
+        raise RuntimeError("Gateway allowed another browser origin")
     ensure_user(admin, "dxos-citizen", values["DEMO_CITIZEN_PASSWORD"], "citizen", "demo")
     ensure_user(admin, "dxos-operator", values["DEMO_OPERATOR_PASSWORD"], "operator", "demo")
     ensure_user(admin, "dxos-outsider", values["DEMO_OUTSIDER_PASSWORD"], "citizen", "other")

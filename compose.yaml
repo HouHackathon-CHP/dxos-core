@@ -74,7 +74,8 @@ services:
     environment:
       KEYCLOAK_ISSUER: http://localhost:8081/realms/dxos
       KEYCLOAK_JWKS_URL: http://identity:8080/realms/dxos/protocol/openid-connect/certs
-      ALLOWED_CLIENT_IDS: dxos-cli
+      ALLOWED_CLIENT_IDS: dxos-cli,dxos-web
+      CORS_ORIGINS: http://localhost:3000
       API_AUDIENCE: dxos-api
       DATA_URL: http://data:8000
       WORKFLOW_URL: http://workflow:8000

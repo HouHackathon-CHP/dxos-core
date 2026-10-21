@@ -7,6 +7,7 @@ from urllib.error import URLError
 import httpx
 import jwt
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from jwt import PyJWKClient
 
@@ -17,6 +18,7 @@ JWKS_URL = os.getenv(
     "http://localhost:8081/realms/dxos/protocol/openid-connect/certs",
 )
 ALLOWED_CLIENT_IDS = set(os.getenv("ALLOWED_CLIENT_IDS", "dxos-cli").split(","))
+CORS_ORIGINS = [origin for origin in os.getenv("CORS_ORIGINS", "").split(",") if origin]
 API_AUDIENCE = os.getenv("API_AUDIENCE", "dxos-api")
 UPSTREAMS = {
     "data": os.getenv("DATA_URL", "http://localhost:8001"),
@@ -26,6 +28,12 @@ INTERNAL_SECRET = os.getenv("INTERNAL_GATEWAY_SECRET", "")
 JWK_CLIENT = PyJWKClient(JWKS_URL, cache_keys=True, timeout=5)
 
 app = FastAPI(title="DX-OS API Gateway", docs_url=None, redoc_url=None)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=CORS_ORIGINS,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
+    allow_headers=["Authorization", "Content-Type"],
+)
 
 
 def claims_from_authorization(authorization: str | None) -> dict:

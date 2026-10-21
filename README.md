@@ -22,11 +22,13 @@ docker compose up --build -d
 python scripts/smoke.py
 ```
 
-The smoke script registers the managed `tenant_id` Keycloak user attribute, creates three local users from passwords in `.env`, obtains OIDC tokens, verifies tenant isolation, sends a structured report through the gateway, uploads and downloads an object, and advances a workflow using an operator role. It prints no passwords or tokens. It can be rerun.
+The smoke script registers the managed `tenant_id` Keycloak user attribute, checks the browser client and CORS settings, creates three local users from passwords in `.env`, obtains OIDC tokens, verifies tenant isolation, sends a structured report through the gateway, uploads and downloads an object, and advances a workflow using an operator role. It prints no passwords or tokens. It can be rerun.
 
 For fast checks without Docker: install the three `requirements.txt` files plus `pytest`, then run `python -m pytest -q`.
 
-The only published development ports are `127.0.0.1:8000` (API gateway) and `127.0.0.1:8081` (Keycloak). PostgreSQL, SeaweedFS and internal APIs stay on the Compose network. `/health` is public. All `/api/{data|workflow}/...` routes require a Keycloak bearer token from `dxos-cli`.
+The only published development ports are `127.0.0.1:8000` (API gateway) and `127.0.0.1:8081` (Keycloak). PostgreSQL, SeaweedFS and internal APIs stay on the Compose network. `/health` is public. All `/api/{data|workflow}/...` routes require a Keycloak bearer token from `dxos-cli` or `dxos-web`.
+
+`dxos-web` is a separate local public OIDC client for a browser app at `http://localhost:3000`. It enables Authorization Code with mandatory PKCE S256, accepts only local redirect URIs, and receives the `dxos-api` audience and `tenant_id` claim. The gateway allows that origin for browser API requests. Change the origin and redirects together when the frontend is deployed elsewhere.
 
 ## API sketch
 
@@ -39,7 +41,7 @@ The gateway validates token signature, issuer, audience and authorized client, t
 
 ## Development boundary
 
-This is a first runnable slice of Layer 1. The local `dxos-cli` client enables password grants for an automated test; a browser app should use authorization code with PKCE and a separate client. The workflow engine accepts validated JSON state graphs; BPMN import, migrations, audit export, antivirus scanning, production secrets, backups and deployment hardening are subsequent work. The application UI required by the contest's Layer 2 is also subsequent work. Do not expose this Compose setup directly to the Internet.
+This is a first runnable slice of Layer 1. The local `dxos-cli` client enables password grants for an automated test; browser applications use `dxos-web`. The workflow engine accepts validated JSON state graphs; BPMN import, migrations, audit export, antivirus scanning, production secrets, backups and deployment hardening are subsequent work. The application UI required by the contest's Layer 2 is also subsequent work. Do not expose this Compose setup directly to the Internet.
 
 The contest requirement is the headless core's four capabilities, not four Git repositories: [OLP 2026 DX-OS prompt](https://vfossa.vn/tin-tuc/de-thi-phan-mem-nguon-mo-olp-2026-798.html).
 
