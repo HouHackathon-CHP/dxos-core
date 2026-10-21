@@ -2,7 +2,7 @@ name: dxos-core
 
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
     environment:
       POSTGRES_USER: dxos
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Create .env from .env.example}
@@ -17,7 +17,7 @@ services:
       retries: 15
 
   object-store:
-    image: chrislusf/seaweedfs:4.48
+    image: chrislusf/seaweedfs:4.48@sha256:4e61d15fd35994cb1e43e1e553dff106794841fd9a99ade2fc8c8bfce4d7872d
     environment:
       AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY:?Create .env from .env.example}
       AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY:?Create .env from .env.example}
@@ -26,7 +26,7 @@ services:
       - object-data:/data
 
   identity:
-    image: quay.io/keycloak/keycloak:26.4.0
+    image: quay.io/keycloak/keycloak:26.4.0@sha256:5f3fb534cde6bf006d79f5912473e5d2c828c707cdfc52e16972803aca9d43dd
     command: start-dev --import-realm
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin

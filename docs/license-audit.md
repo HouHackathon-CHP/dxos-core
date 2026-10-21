@@ -38,9 +38,22 @@ SeaweedFS từng có vấn đề giấy phép ở icon giao diện quản trị;
 
 Vì ngoại lệ `typing_extensions`, hiện **chưa thể tuyên bố toàn bộ dependency tree đều mang giấy phép OSI approved**. Điều này không phủ định kết quả của các thành phần được chọn trực tiếp ở bảng đầu.
 
+## Quét SBOM của image
+
+Đã dùng `docker sbom` 0.6.0 (Syft 0.43.0) với định dạng `syft-json` cho các image đã kéo về ngày 2026-10-22. Các digest dưới đây được khóa trong Compose/Dockerfile:
+
+| Image | Digest SHA-256 (12 ký tự đầu) | Gói phát hiện | Gói không có metadata giấy phép trong SBOM |
+| --- | --- | ---: | ---: |
+| `python:3.12-slim` | `cb33f7f771ec` | 88 | 1 |
+| `postgres:16-alpine` | `721873c34ceb` | 48 | 4 (gồm một giá trị rỗng) |
+| `quay.io/keycloak/keycloak:26.4.0` | `5f3fb534cde6` | 820 | 820 |
+| `chrislusf/seaweedfs:4.48` | `4e61d15fd359` | 282 | 253 |
+
+Tổng số gói chỉ là kết quả nhận diện của phiên bản scanner này, không phải danh mục pháp lý đầy đủ. Keycloak JAR và phần lớn module Go trong SeaweedFS không có nhãn giấy phép mà scanner lấy ra được. Một số gói Debian tổng hợp cả giấy phép của tài liệu/asset như GFDL hoặc CC; không thể suy ra giấy phép của từng tệp chỉ từ dòng metadata đó. Vì vậy SBOM **không chứng minh toàn bộ image đạt OSI approved**. Bốn image đã được quét và tóm tắt; file SBOM thô nằm trong thư mục tạm cục bộ, không chứa trong repo.
+
 ## Phạm vi còn phải kiểm tra trước khi nộp/phân phối
 
-- Tạo SBOM cho đúng digest của các image `python:3.12-slim`, `postgres:16-alpine`, `quay.io/keycloak/keycloak:26.4.0` và `chrislusf/seaweedfs:4.48`, rồi rà soát giấy phép của thư viện hệ điều hành, Java/Go và asset đi kèm. Bảng trên chỉ xác minh giấy phép **dự án cấp cao** của image.
-- Khóa digest image và toàn bộ thư viện gián tiếp trước bản demo/nộp. Các thư viện trực tiếp trong `requirements.txt` đã khóa phiên bản, nhưng dependency gián tiếp vẫn có thể nhận bản mới và đổi inventory.
+- Rà soát thủ công giấy phép của thư viện hệ điều hành, Java/Go và asset đi kèm, đặc biệt những gói SBOM thiếu metadata. Bảng đầu chỉ xác minh giấy phép **dự án cấp cao** của image.
+- Khóa toàn bộ thư viện Python gián tiếp trước bản demo/nộp. Các thư viện trực tiếp và image đã khóa phiên bản/digest, nhưng dependency Python gián tiếp vẫn có thể nhận bản mới và đổi inventory.
 - Lưu notice/license của phụ thuộc khi đóng gói hoặc phân phối image. Apache-2.0 và LGPL-3.0 có nghĩa vụ kèm theo giấy phép và thông báo thích hợp.
 - Kiểm tra lại giấy phép của mỗi thành phần mới trước khi thêm vào Compose hoặc requirements. Ví dụ công nghệ trong [đề OLP](https://vfossa.vn/tin-tuc/de-thi-phan-mem-nguon-mo-olp-2026-798.html) không phải chứng nhận OSI cho từng sản phẩm.
