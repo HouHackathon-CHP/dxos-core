@@ -102,6 +102,7 @@ def test_gateway_validates_audience_and_client(monkeypatch):
         "sub": "alice",
         "aud": gateway.API_AUDIENCE,
         "azp": "dxos-cli",
+        "tenant_id": "tenant-a",
         "exp": datetime.now(timezone.utc) + timedelta(minutes=5),
     }
     make_token = lambda data: jwt.encode(data, key, algorithm="RS256")
@@ -112,6 +113,9 @@ def test_gateway_validates_audience_and_client(monkeypatch):
     with pytest.raises(HTTPException) as wrong_client:
         gateway.claims_from_authorization(f"Bearer {make_token({**claims, 'azp': 'other'})}")
     assert wrong_client.value.status_code == 403
+    with pytest.raises(HTTPException) as missing_tenant:
+        gateway.claims_from_authorization(f"Bearer {make_token({key: value for key, value in claims.items() if key != 'tenant_id'})}")
+    assert missing_tenant.value.status_code == 403
 
 
 def test_gateway_replaces_forged_identity_headers(monkeypatch):

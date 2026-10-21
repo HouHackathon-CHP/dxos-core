@@ -1,4 +1,4 @@
-"""Provision two local demo users and exercise all four core capabilities.
+"""Provision local demo users and exercise all four core capabilities.
 
 Run only against the localhost Docker Compose environment. Values come from .env.
 """
@@ -82,7 +82,49 @@ def admin_token(password: str) -> str:
     return token("admin", password, "admin-cli", realm="master")
 
 
-def ensure_user(admin: str, username: str, password: str, role: str) -> None:
+def ensure_tenant_mapper(admin: str) -> None:
+    base = f"{IDENTITY}/admin/realms/dxos"
+    status, clients = request("GET", f"{base}/clients?clientId=dxos-cli", token=admin)
+    require(status, 200, clients)
+    if len(clients) != 1:
+        raise RuntimeError("Expected one dxos-cli client")
+    client_id = clients[0]["id"]
+    url = f"{base}/clients/{client_id}/protocol-mappers/models"
+    status, mappers = request("GET", url, token=admin)
+    require(status, 200, mappers)
+    if any(mapper["name"] == "dxos-tenant-id" for mapper in mappers):
+        return
+    status, result = request("POST", url, token=admin, data={
+        "name": "dxos-tenant-id",
+        "protocol": "openid-connect",
+        "protocolMapper": "oidc-usermodel-attribute-mapper",
+        "consentRequired": False,
+        "config": {
+            "user.attribute": "tenant_id", "claim.name": "tenant_id",
+            "jsonType.label": "String", "access.token.claim": "true",
+            "id.token.claim": "false", "userinfo.token.claim": "false",
+        },
+    })
+    require(status, 201, result)
+
+
+def ensure_tenant_profile(admin: str) -> None:
+    """Register tenant_id as a managed attribute before assigning users to tenants."""
+    url = f"{IDENTITY}/admin/realms/dxos/users/profile"
+    status, profile = request("GET", url, token=admin)
+    require(status, 200, profile)
+    if any(attribute["name"] == "tenant_id" for attribute in profile["attributes"]):
+        return
+    profile["attributes"].append({
+        "name": "tenant_id",
+        "displayName": "Tenant ID",
+        "permissions": {"view": ["admin", "user"], "edit": ["admin"]},
+    })
+    status, result = request("PUT", url, token=admin, data=profile)
+    require(status, 200, result)
+
+
+def ensure_user(admin: str, username: str, password: str, role: str, tenant: str) -> None:
     base = f"{IDENTITY}/admin/realms/dxos"
     status, users = request("GET", f"{base}/users?{urlencode({'username': username, 'exact': 'true'})}", token=admin)
     require(status, 200, users)
@@ -92,6 +134,7 @@ def ensure_user(admin: str, username: str, password: str, role: str) -> None:
             "firstName": "DXOS", "lastName": "Demo",
             "email": f"{username}@example.invalid", "emailVerified": True,
             "requiredActions": [],
+            "attributes": {"tenant_id": [tenant]},
             "credentials": [{"type": "password", "value": password, "temporary": False}],
         })
         require(status, 201, result)
@@ -103,6 +146,7 @@ def ensure_user(admin: str, username: str, password: str, role: str) -> None:
         "firstName": "DXOS", "lastName": "Demo",
         "email": f"{username}@example.invalid", "emailVerified": True,
         "requiredActions": [],
+        "attributes": {"tenant_id": [tenant]},
     })
     require(status, 204, result)
     status, result = request("PUT", f"{base}/users/{user_id}/reset-password", token=admin, data={
@@ -132,10 +176,14 @@ def main() -> None:
     wait_for(f"{IDENTITY}/realms/dxos/.well-known/openid-configuration")
     wait_for(f"{GATEWAY}/health")
     admin = admin_token(values["KEYCLOAK_ADMIN_PASSWORD"])
-    ensure_user(admin, "dxos-citizen", values["DEMO_CITIZEN_PASSWORD"], "citizen")
-    ensure_user(admin, "dxos-operator", values["DEMO_OPERATOR_PASSWORD"], "operator")
+    ensure_tenant_mapper(admin)
+    ensure_tenant_profile(admin)
+    ensure_user(admin, "dxos-citizen", values["DEMO_CITIZEN_PASSWORD"], "citizen", "demo")
+    ensure_user(admin, "dxos-operator", values["DEMO_OPERATOR_PASSWORD"], "operator", "demo")
+    ensure_user(admin, "dxos-outsider", values["DEMO_OUTSIDER_PASSWORD"], "citizen", "other")
     citizen = token("dxos-citizen", values["DEMO_CITIZEN_PASSWORD"], "dxos-cli")
     operator = token("dxos-operator", values["DEMO_OPERATOR_PASSWORD"], "dxos-cli")
+    outsider = token("dxos-outsider", values["DEMO_OUTSIDER_PASSWORD"], "dxos-cli")
 
     status, record = request("POST", f"{GATEWAY}/api/data/records", token=citizen, data={
         "kind": "environment-report",
@@ -143,6 +191,9 @@ def main() -> None:
     })
     require(status, 201, record)
     record_id = record["id"]
+    status, _ = request("GET", f"{GATEWAY}/api/data/records/{record_id}", token=outsider)
+    if status != 404:
+        raise RuntimeError(f"Cross-tenant record access was not blocked: HTTP {status}")
 
     body, content_type = multipart_file(b"DX-OS demo attachment")
     status, stored = request(

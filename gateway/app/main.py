@@ -1,6 +1,7 @@
 """JWT-validated API edge for the headless DX-OS services."""
 
 import os
+import re
 from urllib.error import URLError
 
 import httpx
@@ -47,6 +48,10 @@ def claims_from_authorization(authorization: str | None) -> dict:
         raise HTTPException(status_code=401, detail="Invalid access token") from exc
     if claims.get("azp") not in ALLOWED_CLIENT_IDS:
         raise HTTPException(status_code=403, detail="Client is not allowed")
+    if not isinstance(claims.get("tenant_id"), str) or not re.fullmatch(
+        r"[A-Za-z0-9_-]{1,64}", claims["tenant_id"]
+    ):
+        raise HTTPException(status_code=403, detail="Tenant claim is required")
     return claims
 
 
@@ -67,7 +72,7 @@ async def proxy(service: str, path: str, request: Request) -> Response:
     # Never trust identity headers from the caller. Only the gateway can set them.
     headers = {
         "X-DXOS-User": str(claims["sub"]),
-        "X-DXOS-Tenant": str(claims.get("tenant_id", "default")),
+        "X-DXOS-Tenant": claims["tenant_id"],
         "X-DXOS-Roles": ",".join(role for role in roles if isinstance(role, str)),
         "X-Internal-Secret": INTERNAL_SECRET,
     }
