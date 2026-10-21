@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   unit:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -26,4 +26,25 @@ jobs:
           docker compose config --quiet
       - name: Run tests
         run: python -m pytest -q
+
+  integration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Start local core
+        run: |
+          cp .env.example .env
+          docker compose up --build -d
+      - name: Exercise core APIs
+        run: python scripts/smoke.py
+      - name: Show service status after failure
+        if: failure()
+        run: docker compose ps
+      - name: Stop local core
+        if: always()
+        run: docker compose down --volumes
 
