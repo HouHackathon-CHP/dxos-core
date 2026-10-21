@@ -18,6 +18,8 @@ jobs:
       - name: Install test dependencies
         run: |
           python -m pip install -r gateway/requirements.txt -r data/requirements.txt -r workflow/requirements.txt pytest
+      - name: Check direct dependency licenses
+        run: python scripts/check_direct_licenses.py
       - name: Validate Compose configuration
         run: |
           cp .env.example .env

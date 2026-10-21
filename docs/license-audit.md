@@ -19,6 +19,8 @@ Ngày kiểm tra: 2026-10-22. OSI phê duyệt **giấy phép**, không phê duy
 
 Các mã giấy phép trên được đối chiếu với [danh sách chính thức của OSI](https://opensource.org/licenses). Chữ `-only` trong metadata của LGPL chỉ rõ biến thể phiên bản 3, tương ứng giấy phép LGPL 3.0 mà OSI liệt kê.
 
+CI chạy `scripts/check_direct_licenses.py` để buộc rà soát lại khi thêm/xóa/đổi phiên bản một thư viện Python được khai báo trực tiếp. Script so metadata của bản cài với danh sách đã duyệt; nó không chứng minh mọi dependency gián tiếp hay tệp bên trong image có giấy phép OSI.
+
 SeaweedFS từng có vấn đề giấy phép ở icon giao diện quản trị; upstream đã [thay Font Awesome bằng icon MIT trong PR #11364](https://github.com/seaweedfs/seaweedfs/pull/11364) trước bản 4.48. Việc này không tự chứng minh rằng mọi tệp bên trong Docker image đều chỉ mang giấy phép OSI.
 
 ## Thư viện Python gián tiếp
