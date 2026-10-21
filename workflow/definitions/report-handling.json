@@ -1,0 +1,12 @@
+{
+  "key": "report-handling",
+  "name": "Citizen report handling",
+  "initial_state": "submitted",
+  "states": ["submitted", "triaged", "assigned", "resolved"],
+  "transitions": [
+    {"action": "triage", "from_state": "submitted", "to_state": "triaged", "roles": ["operator", "admin"]},
+    {"action": "assign", "from_state": "triaged", "to_state": "assigned", "roles": ["operator", "admin"]},
+    {"action": "resolve", "from_state": "assigned", "to_state": "resolved", "roles": ["operator", "admin"]}
+  ]
+}
+

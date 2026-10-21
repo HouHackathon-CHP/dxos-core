@@ -1,0 +1,24 @@
+name: Verify core
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install test dependencies
+        run: |
+          python -m pip install -r gateway/requirements.txt -r data/requirements.txt -r workflow/requirements.txt pytest
+      - name: Validate Compose configuration
+        run: |
+          cp .env.example .env
+          docker compose config --quiet
+      - name: Run tests
+        run: python -m pytest -q
+

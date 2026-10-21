@@ -1,0 +1,92 @@
+name: dxos-core
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: dxos
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Create .env from .env.example}
+      POSTGRES_DB: postgres
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dxos -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  object-store:
+    image: chrislusf/seaweedfs:4.48
+    environment:
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY:?Create .env from .env.example}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY:?Create .env from .env.example}
+      S3_BUCKET: dxos-objects
+    volumes:
+      - object-data:/data
+
+  identity:
+    image: quay.io/keycloak/keycloak:26.4.0
+    command: start-dev --import-realm
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?Create .env from .env.example}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/dxos_identity
+      KC_DB_USERNAME: dxos
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      KC_HOSTNAME: http://localhost:8081
+      KC_HTTP_ENABLED: "true"
+    ports:
+      - "127.0.0.1:8081:8080"
+    volumes:
+      - ./identity/realm.json:/opt/keycloak/data/import/realm.json:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  data:
+    build: ./data
+    environment:
+      DATABASE_URL: postgresql+psycopg://dxos:${POSTGRES_PASSWORD}@postgres:5432/dxos_data
+      S3_ENDPOINT_URL: http://object-store:8333
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+      S3_BUCKET: dxos-objects
+      INTERNAL_GATEWAY_SECRET: ${INTERNAL_GATEWAY_SECRET:?Create .env from .env.example}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      object-store:
+        condition: service_started
+
+  workflow:
+    build: ./workflow
+    environment:
+      DATABASE_URL: postgresql+psycopg://dxos:${POSTGRES_PASSWORD}@postgres:5432/dxos_workflow
+      INTERNAL_GATEWAY_SECRET: ${INTERNAL_GATEWAY_SECRET}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  gateway:
+    build: ./gateway
+    environment:
+      KEYCLOAK_ISSUER: http://localhost:8081/realms/dxos
+      KEYCLOAK_JWKS_URL: http://identity:8080/realms/dxos/protocol/openid-connect/certs
+      ALLOWED_CLIENT_IDS: dxos-cli
+      API_AUDIENCE: dxos-api
+      DATA_URL: http://data:8000
+      WORKFLOW_URL: http://workflow:8000
+      INTERNAL_GATEWAY_SECRET: ${INTERNAL_GATEWAY_SECRET}
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      - identity
+      - data
+      - workflow
+
+volumes:
+  postgres-data:
+  object-data:
+

@@ -1,0 +1,38 @@
+{
+  "realm": "dxos",
+  "enabled": true,
+  "displayName": "DX-OS Local",
+  "roles": {
+    "realm": [
+      {"name": "citizen"},
+      {"name": "operator"},
+      {"name": "admin"}
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "dxos-cli",
+      "name": "DX-OS local smoke test",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "directAccessGrantsEnabled": true,
+      "standardFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "protocolMappers": [
+        {
+          "name": "dxos-api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.custom.audience": "dxos-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        }
+      ]
+    }
+  ]
+}
+
