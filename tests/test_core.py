@@ -102,9 +102,9 @@ def test_gateway_requires_bearer_token(monkeypatch):
 
 
 def test_gateway_registers_a_configured_app_upstream(monkeypatch):
-    monkeypatch.setenv("EXTRA_UPSTREAMS", '{"opencity":"http://opencity-api:8000"}')
+    monkeypatch.setenv("EXTRA_UPSTREAMS", '{"opencity":"http://opencity-backend:8000"}')
     gateway = load_module("dxos_gateway_extra_upstream", ROOT / "gateway/app/main.py")
-    assert gateway.UPSTREAMS["opencity"] == "http://opencity-api:8000"
+    assert gateway.UPSTREAMS["opencity"] == "http://opencity-backend:8000"
     monkeypatch.setenv("EXTRA_UPSTREAMS", '{"data":"http://untrusted:8000"}')
     with pytest.raises(ValueError, match="Invalid extra upstream"):
         load_module("dxos_gateway_bad_upstream", ROOT / "gateway/app/main.py")
