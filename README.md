@@ -37,6 +37,8 @@ The only published development ports are `127.0.0.1:8000` (API gateway) and `127
 - `GET /api/workflow/definitions`, `POST /api/workflow/instances`, `GET /api/workflow/instances/{id}`
 - `POST /api/workflow/instances/{id}/actions/{action}`
 
+Application backends can be mounted behind the same authenticated edge with `EXTRA_UPSTREAMS`, a JSON object mapping a short route name to an internal HTTP URL (for example `{"opencity":"http://opencity-api:8000"}`). These services receive only gateway-generated identity headers and the internal secret. The optional [OpenCity API](https://github.com/HouHackathon-CHP/opencity-api) shows this integration; the core itself does not include city business rules.
+
 The gateway validates token signature, issuer, audience and authorized client, then derives the caller's user ID, tenant and roles from the signed token and injects internal headers. Tokens without a valid `tenant_id` claim are rejected. Data and workflow endpoints reject calls without the shared internal gateway secret. Operators can see their tenant's records and workflows; citizens see their own.
 
 ## Development boundary
@@ -48,4 +50,3 @@ The contest requirement is the headless core's four capabilities, not four Git r
 ## License
 
 Apache-2.0. The container images and Python dependencies retain their own licenses. See the [component license audit](docs/license-audit.md) for OSI checks, the transitive dependency exception, and the remaining image audit.
-

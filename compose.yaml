@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 name: dxos-core
 
 services:
@@ -90,4 +91,3 @@ services:
 volumes:
   postgres-data:
   object-data:
-

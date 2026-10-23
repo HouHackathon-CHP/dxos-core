@@ -1,7 +1,9 @@
+# SPDX-License-Identifier: Apache-2.0
 """JWT-validated API edge for the headless DX-OS services."""
 
 import os
 import re
+import json
 from urllib.error import URLError
 
 import httpx
@@ -24,6 +26,19 @@ UPSTREAMS = {
     "data": os.getenv("DATA_URL", "http://localhost:8001"),
     "workflow": os.getenv("WORKFLOW_URL", "http://localhost:8002"),
 }
+EXTRA_UPSTREAMS = json.loads(os.getenv("EXTRA_UPSTREAMS", "{}"))
+if not isinstance(EXTRA_UPSTREAMS, dict):
+    raise ValueError("EXTRA_UPSTREAMS must be a JSON object")
+for name, url in EXTRA_UPSTREAMS.items():
+    if (
+        not isinstance(name, str)
+        or not re.fullmatch(r"[a-z][a-z0-9_-]{0,31}", name)
+        or name in UPSTREAMS
+        or not isinstance(url, str)
+        or not url.startswith("http://")
+    ):
+        raise ValueError("Invalid extra upstream definition")
+    UPSTREAMS[name] = url
 INTERNAL_SECRET = os.getenv("INTERNAL_GATEWAY_SECRET", "")
 JWK_CLIENT = PyJWKClient(JWKS_URL, cache_keys=True, timeout=5)
 
@@ -107,4 +122,3 @@ async def proxy(service: str, path: str, request: Request) -> Response:
         status_code=upstream.status_code,
         headers=response_headers,
     )
-

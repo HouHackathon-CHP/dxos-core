@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 import importlib.util
 import sys
 from datetime import datetime, timedelta, timezone
@@ -100,6 +101,15 @@ def test_gateway_requires_bearer_token(monkeypatch):
         assert client.get("/api/not-a-service/records").status_code == 404
 
 
+def test_gateway_registers_a_configured_app_upstream(monkeypatch):
+    monkeypatch.setenv("EXTRA_UPSTREAMS", '{"opencity":"http://opencity-api:8000"}')
+    gateway = load_module("dxos_gateway_extra_upstream", ROOT / "gateway/app/main.py")
+    assert gateway.UPSTREAMS["opencity"] == "http://opencity-api:8000"
+    monkeypatch.setenv("EXTRA_UPSTREAMS", '{"data":"http://untrusted:8000"}')
+    with pytest.raises(ValueError, match="Invalid extra upstream"):
+        load_module("dxos_gateway_bad_upstream", ROOT / "gateway/app/main.py")
+
+
 def test_gateway_validates_audience_and_client(monkeypatch):
     gateway = load_module("dxos_gateway_jwt_test", ROOT / "gateway/app/main.py")
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
@@ -157,4 +167,3 @@ def test_gateway_replaces_forged_identity_headers(monkeypatch):
     assert response.status_code == 200
     assert captured["X-DXOS-User"] == "alice"
     assert captured["X-Internal-Secret"] == "test-secret"
-

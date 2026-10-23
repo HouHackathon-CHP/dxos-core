@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Tenant-scoped structured records and S3-compatible object storage."""
 
 import hmac
@@ -286,4 +287,3 @@ def download_object(
     except (BotoCoreError, ClientError) as exc:
         raise HTTPException(status_code=503, detail="Object storage unavailable") from exc
     return StreamingResponse(source.iter_chunks(), media_type=item.content_type)
-

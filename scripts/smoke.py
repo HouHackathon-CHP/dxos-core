@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Provision local demo users and exercise all four core capabilities.
 
 Run only against the localhost Docker Compose environment. Values come from .env.
@@ -314,4 +315,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

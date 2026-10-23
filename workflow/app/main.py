@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Reusable, file-defined workflow engine with tenant and role checks."""
 
 import hmac
@@ -244,4 +245,3 @@ def take_action(
     ))
     db.commit()
     return instance_dict(instance)
-

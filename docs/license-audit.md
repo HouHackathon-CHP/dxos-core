@@ -2,6 +2,8 @@
 
 Ngày kiểm tra: 2026-10-22. OSI phê duyệt **giấy phép**, không phê duyệt sản phẩm hay image. Mỗi kết luận bên dưới áp dụng cho đúng phiên bản/phạm vi được nêu và phải kiểm tra lại khi nâng cấp.
 
+Các tệp mã Python, Dockerfile, Compose và SQL trong repo có thông báo `SPDX-License-Identifier: Apache-2.0`; JSON cấu hình và tài liệu được cấp phép bởi `LICENSE` ở gốc repo. Thay đổi này giúp người đọc xác định giấy phép ngay tại tệp mã.
+
 ## Thành phần do đội chọn trực tiếp
 
 | Thành phần | Phiên bản trong repo | Giấy phép dự án công bố | Đối chiếu OSI |

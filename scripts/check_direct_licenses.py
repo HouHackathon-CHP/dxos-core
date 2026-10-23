@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 """Fail CI when an explicitly selected Python dependency has not been reviewed.
 
 This checks package metadata, not bundled assets or transitive dependencies.
