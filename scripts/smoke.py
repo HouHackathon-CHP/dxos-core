@@ -161,6 +161,40 @@ def ensure_web_client(admin: str) -> None:
         raise RuntimeError("Browser access tokens lack the API audience or tenant mapper")
 
 
+def ensure_mobile_client(admin: str) -> None:
+    """Provision and verify the native PKCE client on existing local realms."""
+    base = f"{IDENTITY}/admin/realms/dxos"
+    definition = next(
+        client for client in json.loads((ROOT / "identity/realm.json").read_text(encoding="utf-8"))["clients"]
+        if client["clientId"] == "dxos-mobile"
+    )
+    url = f"{base}/clients?clientId=dxos-mobile"
+    status, clients = request("GET", url, token=admin)
+    require(status, 200, clients)
+    if not clients:
+        status, result = request("POST", f"{base}/clients", token=admin, data=definition)
+        require(status, 201, result)
+        status, clients = request("GET", url, token=admin)
+        require(status, 200, clients)
+    if len(clients) != 1:
+        raise RuntimeError("Expected one dxos-mobile client")
+    client_id = clients[0]["id"]
+    status, current = request("GET", f"{base}/clients/{client_id}", token=admin)
+    require(status, 200, current)
+    if not (current.get("publicClient") and current.get("standardFlowEnabled")) or current.get(
+        "directAccessGrantsEnabled"
+    ) or current.get("attributes", {}).get("pkce.code.challenge.method") != "S256":
+        raise RuntimeError("Mobile client does not require Authorization Code + PKCE S256")
+    if current.get("redirectUris") != ["opencity://auth"] or current.get("webOrigins") != []:
+        raise RuntimeError("Mobile client redirect differs from the native app configuration")
+    status, mappers = request(
+        "GET", f"{base}/clients/{client_id}/protocol-mappers/models", token=admin
+    )
+    require(status, 200, mappers)
+    if not {"dxos-api-audience", "dxos-tenant-id"}.issubset({item["name"] for item in mappers}):
+        raise RuntimeError("Mobile access tokens lack the API audience or tenant mapper")
+
+
 def ensure_user(admin: str, username: str, password: str, role: str, tenant: str) -> None:
     base = f"{IDENTITY}/admin/realms/dxos"
     status, users = request("GET", f"{base}/users?{urlencode({'username': username, 'exact': 'true'})}", token=admin)
@@ -216,6 +250,7 @@ def main() -> None:
     ensure_tenant_mapper(admin)
     ensure_tenant_profile(admin)
     ensure_web_client(admin)
+    ensure_mobile_client(admin)
     preflight = Request(
         f"{GATEWAY}/api/data/records", method="OPTIONS", headers={
             "Origin": "http://localhost:3000",
@@ -239,9 +274,10 @@ def main() -> None:
             raise RuntimeError(f"Unexpected CORS response for another origin: {exc.code}") from exc
     else:
         raise RuntimeError("Gateway allowed another browser origin")
-    ensure_user(admin, "dxos-citizen", values["DEMO_CITIZEN_PASSWORD"], "citizen", "demo")
-    ensure_user(admin, "dxos-operator", values["DEMO_OPERATOR_PASSWORD"], "operator", "demo")
-    ensure_user(admin, "dxos-outsider", values["DEMO_OUTSIDER_PASSWORD"], "citizen", "other")
+    # The demo realm may issue short-lived admin tokens; provisioning can take a minute.
+    ensure_user(admin_token(values["KEYCLOAK_ADMIN_PASSWORD"]), "dxos-citizen", values["DEMO_CITIZEN_PASSWORD"], "citizen", "demo")
+    ensure_user(admin_token(values["KEYCLOAK_ADMIN_PASSWORD"]), "dxos-operator", values["DEMO_OPERATOR_PASSWORD"], "operator", "demo")
+    ensure_user(admin_token(values["KEYCLOAK_ADMIN_PASSWORD"]), "dxos-outsider", values["DEMO_OUTSIDER_PASSWORD"], "citizen", "other")
     citizen = token("dxos-citizen", values["DEMO_CITIZEN_PASSWORD"], "dxos-cli")
     operator = token("dxos-operator", values["DEMO_OPERATOR_PASSWORD"], "dxos-cli")
     outsider = token("dxos-outsider", values["DEMO_OUTSIDER_PASSWORD"], "dxos-cli")

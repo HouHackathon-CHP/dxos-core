@@ -1,6 +1,6 @@
 # DX-OS Core — Layer 1
 
-Headless open-source core for the HouHackathon-CHP OLP 2026 project. This repository groups four separately deployed capabilities in one place so their API contracts and local setup stay synchronized. Application repositories (backend, frontend and mobile) will consume these APIs later.
+Headless open-source core for the HouHackathon-CHP OLP 2026 project. This repository groups four separately deployed capabilities in one place so their API contracts and local setup stay synchronized. Separate OpenCity backend, web frontend and citizen mobile repositories consume these APIs.
 
 | Module | Implementation | First usable capability |
 | --- | --- | --- |
@@ -26,9 +26,11 @@ The smoke script registers the managed `tenant_id` Keycloak user attribute, chec
 
 For fast checks without Docker: install the three `requirements.txt` files plus `pytest`, then run `python -m pytest -q`.
 
-The only published development ports are `127.0.0.1:8000` (API gateway) and `127.0.0.1:8081` (Keycloak). PostgreSQL, SeaweedFS and internal APIs stay on the Compose network. `/health` is public. All `/api/{data|workflow}/...` routes require a Keycloak bearer token from `dxos-cli` or `dxos-web`.
+The only published development ports are `127.0.0.1:8000` (API gateway) and `127.0.0.1:8081` (Keycloak). PostgreSQL, SeaweedFS and internal APIs stay on the Compose network. `/health` is public. All `/api/{data|workflow}/...` routes require a Keycloak bearer token from `dxos-cli`, `dxos-web` or `dxos-mobile`.
 
 `dxos-web` is a separate local public OIDC client for a browser app at `http://localhost:3000`. It enables Authorization Code with mandatory PKCE S256, accepts only local redirect URIs, and receives the `dxos-api` audience and `tenant_id` claim. The gateway allows that origin for browser API requests. Change the origin and redirects together when the frontend is deployed elsewhere.
+
+`dxos-mobile` is a separate public OIDC client for the citizen Android app. It requires Authorization Code with PKCE S256 and allows only `opencity://auth` as a redirect. For an Android emulator, run `adb reverse tcp:8081 tcp:8081` and `adb reverse tcp:8000 tcp:8000` so the app and browser resolve the same localhost issuer and gateway. The smoke script adds this client to an existing local realm.
 
 ## API sketch
 
@@ -43,7 +45,7 @@ The gateway validates token signature, issuer, audience and authorized client, t
 
 ## Development boundary
 
-This is a first runnable slice of Layer 1. The local `dxos-cli` client enables password grants for an automated test; browser applications use `dxos-web`. The workflow engine accepts validated JSON state graphs; BPMN import, migrations, audit export, antivirus scanning, production secrets, backups and deployment hardening are subsequent work. The application UI required by the contest's Layer 2 is also subsequent work. Do not expose this Compose setup directly to the Internet.
+This is a first runnable slice of Layer 1. The local `dxos-cli` client enables password grants for an automated test; browser applications use `dxos-web` and the citizen mobile app uses `dxos-mobile`. The workflow engine accepts validated JSON state graphs; BPMN import, migrations, audit export, antivirus scanning, production secrets, backups and deployment hardening are subsequent work. Do not expose this Compose setup directly to the Internet.
 
 The contest requirement is the headless core's four capabilities, not four Git repositories: [OLP 2026 DX-OS prompt](https://vfossa.vn/tin-tuc/de-thi-phan-mem-nguon-mo-olp-2026-798.html).
 
