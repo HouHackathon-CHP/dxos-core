@@ -91,6 +91,8 @@ async def proxy(service: str, path: str, request: Request) -> Response:
     if service not in UPSTREAMS:
         raise HTTPException(status_code=404, detail="Unknown service")
     claims = claims_from_authorization(request.headers.get("authorization"))
+    if service in {"data", "workflow"} and claims.get("azp") != "dxos-cli":
+        raise HTTPException(status_code=403, detail="Use an application API for this client")
     roles = claims.get("realm_access", {}).get("roles", [])
     # Never trust identity headers from the caller. Only the gateway can set them.
     headers = {

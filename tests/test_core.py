@@ -141,7 +141,8 @@ def test_gateway_replaces_forged_identity_headers(monkeypatch):
     gateway = load_module("dxos_gateway_headers_test", ROOT / "gateway/app/main.py")
     monkeypatch.setattr(gateway, "INTERNAL_SECRET", "test-secret")
     monkeypatch.setattr(gateway, "claims_from_authorization", lambda _: {
-        "sub": "alice", "tenant_id": "tenant-a", "realm_access": {"roles": ["citizen"]}
+        "sub": "alice", "tenant_id": "tenant-a", "azp": "dxos-cli",
+        "realm_access": {"roles": ["citizen"]}
     })
     captured = {}
 
@@ -167,3 +168,14 @@ def test_gateway_replaces_forged_identity_headers(monkeypatch):
     assert response.status_code == 200
     assert captured["X-DXOS-User"] == "alice"
     assert captured["X-Internal-Secret"] == "test-secret"
+
+
+def test_gateway_blocks_web_access_to_generic_core(monkeypatch):
+    gateway = load_module("dxos_gateway_app_boundary", ROOT / "gateway/app/main.py")
+    monkeypatch.setattr(gateway, "claims_from_authorization", lambda _: {
+        "sub": "staff", "tenant_id": "tenant-a", "azp": "dxos-web",
+        "realm_access": {"roles": ["operator", "reports_operator"]},
+    })
+    with TestClient(gateway.app) as client:
+        assert client.get("/api/data/records", headers={"Authorization": "Bearer test"}).status_code == 403
+        assert client.get("/api/workflow/instances", headers={"Authorization": "Bearer test"}).status_code == 403

@@ -12,6 +12,15 @@
       },
       {
         "name": "admin"
+      },
+      {
+        "name": "reports_operator"
+      },
+      {
+        "name": "bulletins_operator"
+      },
+      {
+        "name": "surveys_operator"
       }
     ]
   },

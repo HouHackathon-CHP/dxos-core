@@ -4,7 +4,7 @@ Headless open-source core for the HouHackathon-CHP OLP 2026 project. This reposi
 
 | Module | Implementation | First usable capability |
 | --- | --- | --- |
-| `identity/` | Keycloak realm | OIDC sign-in, roles `citizen` and `operator` |
+| `identity/` | Keycloak realm | OIDC sign-in and application roles |
 | `gateway/` | FastAPI + Keycloak JWKS | JWT validation and routing to internal APIs |
 | `data/` | FastAPI + PostgreSQL + SeaweedFS S3 | Tenant-scoped JSON records, change history and object upload/download |
 | `workflow/` | FastAPI + PostgreSQL | File-defined JSON workflow, transitions and history |
@@ -26,7 +26,7 @@ The smoke script registers the managed `tenant_id` Keycloak user attribute, chec
 
 For fast checks without Docker: install the three `requirements.txt` files plus `pytest`, then run `python -m pytest -q`.
 
-The only published development ports are `127.0.0.1:8000` (API gateway) and `127.0.0.1:8081` (Keycloak). PostgreSQL, SeaweedFS and internal APIs stay on the Compose network. `/health` is public. All `/api/{data|workflow}/...` routes require a Keycloak bearer token from `dxos-cli`, `dxos-web` or `dxos-mobile`.
+The only published development ports are `127.0.0.1:8000` (API gateway) and `127.0.0.1:8081` (Keycloak). PostgreSQL, SeaweedFS and internal APIs stay on the Compose network. `/health` is public. Generic `/api/{data|workflow}/...` routes accept only the local `dxos-cli` client. Web and mobile clients use application APIs such as `/api/opencity/...`, whose backend enforces feature permissions before delegating to the core.
 
 `dxos-web` is a separate local public OIDC client for a browser app at `http://localhost:3000`. It enables Authorization Code with mandatory PKCE S256, accepts only local redirect URIs, and receives the `dxos-api` audience and `tenant_id` claim. The gateway allows that origin for browser API requests. Change the origin and redirects together when the frontend is deployed elsewhere.
 
@@ -41,7 +41,7 @@ The only published development ports are `127.0.0.1:8000` (API gateway) and `127
 
 Application backends can be mounted behind the same authenticated edge with `EXTRA_UPSTREAMS`, a JSON object mapping a short route name to an internal HTTP URL (for example `{"opencity":"http://opencity-backend:8000"}`). These services receive only gateway-generated identity headers and the internal secret. The optional [OpenCity Backend](https://github.com/HouHackathon-CHP/opencity-backend) shows this integration; the core itself does not include city business rules.
 
-The gateway validates token signature, issuer, audience and authorized client, then derives the caller's user ID, tenant and roles from the signed token and injects internal headers. Tokens without a valid `tenant_id` claim are rejected. Data and workflow endpoints reject calls without the shared internal gateway secret. Operators can see their tenant's records and workflows; citizens see their own.
+The gateway validates token signature, issuer, audience and authorized client, then derives the caller's user ID, tenant and roles from the signed token and injects internal headers. Tokens without a valid `tenant_id` claim are rejected. Data and workflow endpoints reject calls without the shared internal gateway secret. The generic `operator` role remains available to the core CLI smoke test; OpenCity uses its own feature roles and does not grant `operator` to staff accounts.
 
 ## Development boundary
 
