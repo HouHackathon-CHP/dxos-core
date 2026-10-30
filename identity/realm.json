@@ -17,6 +17,9 @@
         "name": "reports_operator"
       },
       {
+        "name": "reports_dispatcher"
+      },
+      {
         "name": "bulletins_operator"
       },
       {
