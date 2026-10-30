@@ -135,13 +135,16 @@ def test_gateway_validates_audience_and_client(monkeypatch):
     with pytest.raises(HTTPException) as missing_tenant:
         gateway.claims_from_authorization(f"Bearer {make_token({key: value for key, value in claims.items() if key != 'tenant_id'})}")
     assert missing_tenant.value.status_code == 403
+    with pytest.raises(HTTPException) as invalid_unit:
+        gateway.claims_from_authorization(f"Bearer {make_token({**claims, 'unit_id': 'infrastructure\nX-Forged: true'})}")
+    assert invalid_unit.value.status_code == 403
 
 
 def test_gateway_replaces_forged_identity_headers(monkeypatch):
     gateway = load_module("dxos_gateway_headers_test", ROOT / "gateway/app/main.py")
     monkeypatch.setattr(gateway, "INTERNAL_SECRET", "test-secret")
     monkeypatch.setattr(gateway, "claims_from_authorization", lambda _: {
-        "sub": "alice", "tenant_id": "tenant-a", "azp": "dxos-cli",
+        "sub": "alice", "tenant_id": "tenant-a", "unit_id": "infrastructure", "azp": "dxos-cli",
         "realm_access": {"roles": ["citizen"]}
     })
     captured = {}
@@ -167,6 +170,7 @@ def test_gateway_replaces_forged_identity_headers(monkeypatch):
         )
     assert response.status_code == 200
     assert captured["X-DXOS-User"] == "alice"
+    assert captured["X-DXOS-Unit"] == "infrastructure"
     assert captured["X-Internal-Secret"] == "test-secret"
 
 

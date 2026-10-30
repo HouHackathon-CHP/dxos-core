@@ -75,6 +75,9 @@ def claims_from_authorization(authorization: str | None) -> dict:
         r"[A-Za-z0-9_-]{1,64}", claims["tenant_id"]
     ):
         raise HTTPException(status_code=403, detail="Tenant claim is required")
+    unit = claims.get("unit_id")
+    if unit is not None and (not isinstance(unit, str) or not re.fullmatch(r"[a-z0-9_-]{1,64}", unit)):
+        raise HTTPException(status_code=403, detail="Invalid unit claim")
     return claims
 
 
@@ -98,6 +101,7 @@ async def proxy(service: str, path: str, request: Request) -> Response:
     headers = {
         "X-DXOS-User": str(claims["sub"]),
         "X-DXOS-Tenant": claims["tenant_id"],
+        "X-DXOS-Unit": claims.get("unit_id", ""),
         "X-DXOS-Roles": ",".join(role for role in roles if isinstance(role, str)),
         "X-Internal-Secret": INTERNAL_SECRET,
     }
