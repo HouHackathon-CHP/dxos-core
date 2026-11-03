@@ -11,7 +11,8 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-REQUIREMENTS = ("gateway/requirements.txt", "data/requirements.txt", "workflow/requirements.txt")
+REQUIREMENTS = ("gateway/requirements.txt", "data/requirements.txt", "workflow/requirements.txt",
+                "insight/requirements.txt")
 REVIEWED = {
     "boto3": ("1.43.116", "Apache-2.0"),
     "fastapi": ("0.158.1", "MIT"),

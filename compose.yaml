@@ -87,6 +87,12 @@ services:
       - identity
       - data
       - workflow
+      - insight
+
+  insight:
+    build: ./insight
+    environment:
+      INTERNAL_GATEWAY_SECRET: ${INTERNAL_GATEWAY_SECRET}
 
 volumes:
   postgres-data:

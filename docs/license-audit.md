@@ -1,6 +1,6 @@
 # Kiểm tra giấy phép nguồn mở
 
-Ngày kiểm tra: 2026-10-22. OSI phê duyệt **giấy phép**, không phê duyệt sản phẩm hay image. Mỗi kết luận bên dưới áp dụng cho đúng phiên bản/phạm vi được nêu và phải kiểm tra lại khi nâng cấp.
+Ngày kiểm tra thành phần ban đầu: 2026-10-22; kiểm tra lại dependency trực tiếp khi thêm `insight`: 2026-11-04. OSI phê duyệt **giấy phép**, không phê duyệt sản phẩm hay image. Mỗi kết luận bên dưới áp dụng cho đúng phiên bản/phạm vi được nêu và phải kiểm tra lại khi nâng cấp.
 
 Các tệp mã Python, Dockerfile, Compose và SQL trong repo có thông báo `SPDX-License-Identifier: Apache-2.0`; JSON cấu hình và tài liệu được cấp phép bởi `LICENSE` ở gốc repo. Thay đổi này giúp người đọc xác định giấy phép ngay tại tệp mã.
 
@@ -27,7 +27,7 @@ SeaweedFS từng có vấn đề giấy phép ở icon giao diện quản trị;
 
 ## Thư viện Python gián tiếp
 
-Đã lấy metadata từ môi trường Python cài toàn bộ ba `requirements.txt` và `pytest` vào ngày kiểm tra. Các nhóm sau xuất hiện:
+Đã lấy metadata từ môi trường Python cài các `requirements.txt` và `pytest` vào ngày kiểm tra ban đầu. `insight/requirements.txt` chỉ dùng FastAPI và Uvicorn ở đúng phiên bản đã rà soát; kiểm tra dependency trực tiếp qua `scripts/check_direct_licenses.py` ngày 2026-11-04 đã qua. Các nhóm sau xuất hiện:
 
 | Giấy phép trong metadata | Gói tiêu biểu | Đối chiếu OSI |
 | --- | --- | --- |
