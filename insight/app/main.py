@@ -62,7 +62,7 @@ def classify(text: str, labels: list[str], examples: list[Example]) -> tuple[lis
         word_counts[example.label].update(words)
         document_counts[example.label] += 1
         vocabulary.update(words)
-    query = Counter(tokens(text))
+    query = Counter(word for word in tokens(text) if word in vocabulary)
     if not query or not vocabulary:
         return ([{"label": label, "score": round(1 / len(labels), 4)} for label in labels], [])
     total_docs = sum(document_counts.values())

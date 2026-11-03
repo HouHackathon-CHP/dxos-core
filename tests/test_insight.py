@@ -60,3 +60,11 @@ def test_insight_rejects_unbounded_or_wrong_labels(monkeypatch):
     assert client.post("/analyze", json={**BODY, "examples": BODY["examples"] +
                        [{"label": "transport", "text": "Xe buýt bị chậm"}]}, headers=HEADERS).status_code == 422
     assert client.post("/analyze", json={**BODY, "text": "x" * 4001}, headers=HEADERS).status_code == 422
+
+
+def test_unseen_words_do_not_bias_a_label(monkeypatch):
+    client = insight_client(monkeypatch)
+    result = client.post("/analyze", json={**BODY, "text": "xyzzy plugh qwerty"}, headers=HEADERS)
+    assert result.status_code == 200
+    assert result.json()["signals"] == []
+    assert {item["score"] for item in result.json()["ranked_labels"]} == {0.5}
