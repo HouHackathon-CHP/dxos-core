@@ -1,6 +1,6 @@
 # DX-OS Core — Layer 1
 
-Headless open-source core for the HouHackathon-CHP OLP 2026 project. This repository groups four separately deployed capabilities in one place so their API contracts and local setup stay synchronized. Separate OpenCity backend, web frontend and citizen mobile repositories consume these APIs.
+Headless open-source core for the HouHackathon-CHP OLP 2026 project. This repository groups separately deployed capabilities in one place so their API contracts and local setup stay synchronized. Separate OpenCity backend, web frontend and citizen mobile repositories consume these APIs.
 
 | Module | Implementation | First usable capability |
 | --- | --- | --- |
@@ -8,6 +8,7 @@ Headless open-source core for the HouHackathon-CHP OLP 2026 project. This reposi
 | `gateway/` | FastAPI + Keycloak JWKS | JWT validation and routing to internal APIs |
 | `data/` | FastAPI + PostgreSQL + SeaweedFS S3 | Tenant-scoped JSON records, change history and object upload/download |
 | `workflow/` | FastAPI + PostgreSQL | File-defined JSON workflow, transitions and history |
+| `insight/` | FastAPI + Python standard library | Internal text classification and similar-text ranking for domain backends |
 
 The `report-handling` definition is only a demonstration of the generic workflow API. The core contains no end-user interface or GreenCity business rules.
 
@@ -24,7 +25,7 @@ python scripts/smoke.py
 
 The smoke script registers the managed `tenant_id` Keycloak user attribute, checks the browser client and CORS settings, creates three local users from passwords in `.env`, obtains OIDC tokens, verifies tenant isolation, sends a structured report through the gateway, uploads and downloads an object, and advances a workflow using an operator role. It prints no passwords or tokens. It can be rerun.
 
-For fast checks without Docker: install the three `requirements.txt` files plus `pytest`, then run `python -m pytest -q`.
+For fast checks without Docker: install all four module `requirements.txt` files plus `pytest`, then run `python -m pytest -q`.
 
 The only published development ports are `127.0.0.1:8000` (API gateway) and `127.0.0.1:8081` (Keycloak). PostgreSQL, SeaweedFS and internal APIs stay on the Compose network. `/health` is public. Generic `/api/{data|workflow}/...` routes accept only the local `dxos-cli` client. Web and mobile clients use application APIs such as `/api/opencity/...`, whose backend enforces feature permissions before delegating to the core.
 
@@ -33,6 +34,8 @@ The only published development ports are `127.0.0.1:8000` (API gateway) and `127
 `dxos-mobile` is a separate public OIDC client for the citizen Android app. It requires Authorization Code with PKCE S256 and allows only `opencity://auth` as a redirect. For an Android emulator, run `adb reverse tcp:8081 tcp:8081` and `adb reverse tcp:8000 tcp:8000` so the app and browser resolve the same localhost issuer and gateway. The smoke script adds this client to an existing local realm.
 
 ## API sketch
+
+The `insight` service stays internal on the Compose network. `POST /analyze` accepts declared labels, training examples and optional candidate texts. It returns Multinomial Naive Bayes rankings and TF-IDF cosine similar-text matches. Scores rank options within one request and are not calibrated probabilities. Domain backends supply tenant-scoped examples and decide how to use the result; this service keeps no case data.
 
 - `POST /api/data/records`, `GET /api/data/records`, `GET /api/data/records/{id}`, `PATCH /api/data/records/{id}`, `GET /api/data/records/{id}/history`
 - `POST /api/data/objects?record_id={id}`, `GET /api/data/objects/{id}`
