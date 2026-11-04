@@ -10,14 +10,14 @@ Headless open-source core for the HouHackathon-CHP OLP 2026 project. This reposi
 | `workflow/` | FastAPI + PostgreSQL | File-defined JSON workflow, transitions and history |
 | `insight/` | FastAPI + Python standard library | Internal text classification and similar-text ranking for domain backends |
 
-The `report-handling` definition is only a demonstration of the generic workflow API. The core contains no end-user interface or GreenCity business rules.
+The `report-handling` definition is only a demonstration of the generic workflow API. The core contains no end-user interface or OpenCity business rules.
 
 ## Run locally
 
 Requires Docker Desktop with the Linux engine and Python 3.10+ for the smoke script.
 
 ```powershell
-Copy-Item .env.example .env
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 # Replace all values in .env with local random secrets.
 docker compose up --build -d
 python scripts/smoke.py
@@ -25,7 +25,9 @@ python scripts/smoke.py
 
 The smoke script registers the managed `tenant_id` Keycloak user attribute, checks the browser client and CORS settings, creates three local users from passwords in `.env`, obtains OIDC tokens, verifies tenant isolation, sends a structured report through the gateway, uploads and downloads an object, and advances a workflow using an operator role. It prints no passwords or tokens. It can be rerun.
 
-For fast checks without Docker: install all four module `requirements.txt` files plus `pytest`, then run `python -m pytest -q`.
+To run the full OpenCity application, start the combined Compose stack from the sibling [OpenCity Backend](https://github.com/HouHackathon-CHP/opencity-backend) repository using its `compose.stack.yaml`, then run this smoke script followed by `opencity-backend/scripts/smoke_app.py`. See the backend README for commands and the [web frontend](https://github.com/HouHackathon-CHP/opencity-frontend) and [Android app](https://github.com/HouHackathon-CHP/opencity-mobile) READMEs for their own launch steps.
+
+For fast checks without Docker: install each Python module's `requirements.txt` plus `pytest`, then run `python -m pytest -q`.
 
 The only published development ports are `127.0.0.1:8000` (API gateway) and `127.0.0.1:8081` (Keycloak). PostgreSQL, SeaweedFS and internal APIs stay on the Compose network. `/health` is public. Generic `/api/{data|workflow}/...` routes accept only the local `dxos-cli` client. Web and mobile clients use application APIs such as `/api/opencity/...`, whose backend enforces feature permissions before delegating to the core.
 
@@ -44,7 +46,7 @@ The `insight` service stays internal on the Compose network. `POST /analyze` acc
 
 Application backends can be mounted behind the same authenticated edge with `EXTRA_UPSTREAMS`, a JSON object mapping a short route name to an internal HTTP URL (for example `{"opencity":"http://opencity-backend:8000"}`). These services receive only gateway-generated identity headers and the internal secret. The optional [OpenCity Backend](https://github.com/HouHackathon-CHP/opencity-backend) shows this integration; the core itself does not include city business rules.
 
-The gateway validates token signature, issuer, audience and authorized client, then derives the caller's user ID, tenant, optional `unit_id`, and roles from the signed token and injects internal headers. Tokens without a valid `tenant_id` claim or with a malformed `unit_id` are rejected. Data and workflow endpoints reject calls without the shared internal gateway secret. The generic `operator` role remains available to the core CLI smoke test; OpenCity uses `reports_dispatcher` for tenant-wide intake, `reports_operator` plus an admin-managed unit claim for report handlers, and separate feature roles for bulletins and surveys.
+The gateway validates token signature, issuer, audience and authorized client, then derives the caller's user ID, tenant, optional `unit_id`, and roles from the signed token and injects internal headers. Tokens without a valid `tenant_id` claim or with a malformed `unit_id` are rejected. Data and workflow endpoints reject calls without the shared internal gateway secret. The generic `operator` role remains available to the core CLI smoke test; OpenCity uses `reports_dispatcher` for tenant-wide intake, `reports_operator` plus an admin-managed unit claim for report handlers, and separate feature roles for bulletins, surveys, appointments, administrative feedback and business feedback. The OpenCity backend checks those roles for each feature.
 
 ## Development boundary
 
