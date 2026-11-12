@@ -42,6 +42,20 @@ for name, url in EXTRA_UPSTREAMS.items():
 INTERNAL_SECRET = os.getenv("INTERNAL_GATEWAY_SECRET", "")
 JWK_CLIENT = PyJWKClient(JWKS_URL, cache_keys=True, timeout=5)
 
+PUBLIC_OPENCITY_GET_PREFIXES = (
+    "bus/",
+    "air-quality/summary",
+    "air-quality/stations",
+    "bulletins",
+    "hotlines",
+)
+
+
+def is_public_get(service: str, path: str, method: str) -> bool:
+    if method != "GET" or service != "opencity":
+        return False
+    return any(path.startswith(prefix) for prefix in PUBLIC_OPENCITY_GET_PREFIXES)
+
 app = FastAPI(title="DX-OS API Gateway", docs_url=None, redoc_url=None)
 app.add_middleware(
     CORSMiddleware,
@@ -93,7 +107,31 @@ def health() -> dict:
 async def proxy(service: str, path: str, request: Request) -> Response:
     if service not in UPSTREAMS:
         raise HTTPException(status_code=404, detail="Unknown service")
-    claims = claims_from_authorization(request.headers.get("authorization"))
+    auth_header = request.headers.get("authorization")
+    has_token = bool(auth_header and auth_header.strip() not in {"Bearer", "Bearer ", "Bearer undefined", "Bearer null"})
+    claims = None
+    if has_token:
+        try:
+            claims = claims_from_authorization(auth_header)
+        except HTTPException:
+            if is_public_get(service, path, request.method):
+                claims = {
+                    "sub": "public-citizen",
+                    "tenant_id": "demo",
+                    "unit_id": "",
+                    "realm_access": {"roles": ["citizen"]},
+                }
+            else:
+                raise
+    elif is_public_get(service, path, request.method):
+        claims = {
+            "sub": "public-citizen",
+            "tenant_id": "demo",
+            "unit_id": "",
+            "realm_access": {"roles": ["citizen"]},
+        }
+    else:
+        claims = claims_from_authorization(auth_header)
     if service in {"data", "workflow"} and claims.get("azp") != "dxos-cli":
         raise HTTPException(status_code=403, detail="Use an application API for this client")
     roles = claims.get("realm_access", {}).get("roles", [])
