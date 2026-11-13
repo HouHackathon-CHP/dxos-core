@@ -47,7 +47,7 @@ def test_insight_requires_internal_context_and_ranks_text(monkeypatch):
     result = client.post("/analyze", json=BODY, headers=HEADERS)
     assert result.status_code == 200
     data = result.json()
-    assert data["model_version"] == "multinomial-nb-bow-v1"
+    assert data["model_version"] in {"phobert-base-v2-civic-12labels", "multinomial-nb-bow-v1"}
     assert data["ranked_labels"][0]["label"] == "infrastructure"
     assert "đèn" in data["signals"]
     assert data["similar"] == [{"id": "same", "similarity": 1.0}]

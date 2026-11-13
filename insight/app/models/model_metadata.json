@@ -1,0 +1,83 @@
+{
+  "model_name": "OpenCity Civic Feedback Classifier (FITHOU AI)",
+  "version": "opencity-civic-ai-v1",
+  "classes": [
+    "environment",
+    "infrastructure",
+    "intake",
+    "transport"
+  ],
+  "samples_trained": 1200,
+  "cross_val_accuracy": 1.0,
+  "cross_val_macro_f1": 1.0,
+  "top_signals": {
+    "environment": [
+      "cây",
+      "rác",
+      "thải",
+      "xà",
+      "lớn",
+      "bãi",
+      "đổ",
+      "cành",
+      "cây xanh",
+      "và",
+      "công",
+      "lối đi",
+      "chắn",
+      "quá",
+      "quá tải"
+    ],
+    "infrastructure": [
+      "bị",
+      "cống",
+      "chiếu sáng",
+      "đèn chiếu sáng",
+      "đèn chiếu",
+      "chiếu",
+      "đèn",
+      "nước",
+      "thoát",
+      "sáng",
+      "vỡ",
+      "bị vỡ",
+      "đoạn",
+      "đèn đường",
+      "đâm"
+    ],
+    "intake": [
+      "đề",
+      "cấp",
+      "nghị",
+      "dân",
+      "ký",
+      "đăng ký",
+      "đăng",
+      "đề nghị",
+      "sơ",
+      "hồ",
+      "hồ sơ",
+      "tổ dân phố",
+      "dân phố",
+      "tổ dân",
+      "tổ"
+    ],
+    "transport": [
+      "xe",
+      "giao",
+      "giao thông",
+      "khách",
+      "thông",
+      "đỗ",
+      "biển",
+      "cấm",
+      "sai quy",
+      "sai quy định",
+      "dù",
+      "đón",
+      "trạm",
+      "các",
+      "trên"
+    ]
+  }
+}
