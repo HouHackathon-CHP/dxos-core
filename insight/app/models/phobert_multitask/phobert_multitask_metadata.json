@@ -55,6 +55,7 @@
     "security_order_disputes": "intake"
   },
   "embedding_dim": 768,
+  "dataset_size": 36000,
   "metrics": {
     "cat_macro_f1": 1.0,
     "urg_macro_f1": 1.0,
