@@ -202,7 +202,7 @@ def analyze(body: AnalysisRequest, tenant: str = Depends(internal_caller)) -> di
         raise HTTPException(status_code=422, detail="Examples must use unique declared labels")
     ranked, signals = classify(body.text, labels, body.examples)
     return {
-        "model_version": MODEL_VERSION,
+        "model_version": MODEL_VERSION if phobert_model is not None else "multinomial-nb-bow-v1",
         "ranked_labels": ranked,
         "signals": signals,
         "similar": similar(body.text, body.candidates),
