@@ -46,21 +46,22 @@ try:
         class PhoBertMultiTask(nn.Module):
             def __init__(self, config, num_categories=12, num_urgencies=3):
                 super().__init__()
-                self.roberta = AutoModel.from_config(config)
+                self.roberta = AutoModel.from_config(config, add_pooling_layer=False)
                 hidden_size = config.hidden_size
+                dropout = getattr(config, "hidden_dropout_prob", 0.1)
                 self.category_classifier = nn.Sequential(
-                    nn.Dropout(0.2),
-                    nn.Linear(hidden_size, 256),
-                    nn.GELU(),
-                    nn.Dropout(0.2),
-                    nn.Linear(256, num_categories),
+                    nn.Dropout(dropout),
+                    nn.Linear(hidden_size, hidden_size),
+                    nn.Tanh(),
+                    nn.Dropout(dropout),
+                    nn.Linear(hidden_size, num_categories),
                 )
                 self.urgency_classifier = nn.Sequential(
-                    nn.Dropout(0.2),
-                    nn.Linear(hidden_size, 128),
-                    nn.GELU(),
-                    nn.Dropout(0.2),
-                    nn.Linear(128, num_urgencies),
+                    nn.Dropout(dropout),
+                    nn.Linear(hidden_size, hidden_size),
+                    nn.Tanh(),
+                    nn.Dropout(dropout),
+                    nn.Linear(hidden_size, num_urgencies),
                 )
 
             def forward(self, input_ids, attention_mask):
