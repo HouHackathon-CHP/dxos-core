@@ -1,0 +1,64 @@
+{
+  "model_name": "PhoBERT-base-v2-MultiTask-Civic",
+  "architecture": "PhoBertMultiTask (Shared Backbone + Category Head + Urgency Head + Normalized Embeddings)",
+  "backbone": "vinai/phobert-base-v2",
+  "classes_12": [
+    "drainage_sewage",
+    "noise_disturbance",
+    "pollution_emissions",
+    "public_procedures",
+    "road_maintenance",
+    "security_order_disputes",
+    "sidewalk_encroachment",
+    "street_lighting",
+    "traffic_congestion_safety",
+    "traffic_signals",
+    "urban_trees",
+    "waste_management"
+  ],
+  "id2cat": {
+    "0": "drainage_sewage",
+    "1": "noise_disturbance",
+    "2": "pollution_emissions",
+    "3": "public_procedures",
+    "4": "road_maintenance",
+    "5": "security_order_disputes",
+    "6": "sidewalk_encroachment",
+    "7": "street_lighting",
+    "8": "traffic_congestion_safety",
+    "9": "traffic_signals",
+    "10": "urban_trees",
+    "11": "waste_management"
+  },
+  "urgency_classes": [
+    "high",
+    "normal",
+    "low"
+  ],
+  "id2urg": {
+    "0": "high",
+    "1": "normal",
+    "2": "low"
+  },
+  "label12_to_unit4": {
+    "road_maintenance": "infrastructure",
+    "drainage_sewage": "infrastructure",
+    "street_lighting": "infrastructure",
+    "waste_management": "environment",
+    "pollution_emissions": "environment",
+    "noise_disturbance": "environment",
+    "urban_trees": "environment",
+    "traffic_signals": "transport",
+    "traffic_congestion_safety": "transport",
+    "sidewalk_encroachment": "transport",
+    "public_procedures": "intake",
+    "security_order_disputes": "intake"
+  },
+  "embedding_dim": 768,
+  "dataset_size": 36000,
+  "metrics": {
+    "cat_macro_f1": 1.0,
+    "urg_macro_f1": 1.0,
+    "unit4_acc": 1.0
+  }
+}

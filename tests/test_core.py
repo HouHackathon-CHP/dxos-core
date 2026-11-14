@@ -135,8 +135,9 @@ def test_gateway_validates_audience_and_client(monkeypatch):
     with pytest.raises(HTTPException) as missing_tenant:
         gateway.claims_from_authorization(f"Bearer {make_token({key: value for key, value in claims.items() if key != 'tenant_id'})}")
     assert missing_tenant.value.status_code == 403
+    forged_token = make_token({**claims, "unit_id": "infrastructure\nX-Forged: true"})
     with pytest.raises(HTTPException) as invalid_unit:
-        gateway.claims_from_authorization(f"Bearer {make_token({**claims, 'unit_id': 'infrastructure\nX-Forged: true'})}")
+        gateway.claims_from_authorization(f"Bearer {forged_token}")
     assert invalid_unit.value.status_code == 403
 
 
