@@ -23,7 +23,9 @@ docker compose up --build -d
 python scripts/smoke.py
 ```
 
-The smoke script registers the managed `tenant_id` Keycloak user attribute, checks the browser client and CORS settings, creates three local users from passwords in `.env`, obtains OIDC tokens, verifies tenant isolation, sends a structured report through the gateway, uploads and downloads an object, and advances a workflow using an operator role. It prints no passwords or tokens. It can be rerun.
+The smoke script registers the managed `tenant_id` Keycloak user attribute, checks the browser client and CORS settings, creates three local users from the `DEMO_CITIZEN_*`, `DEMO_OPERATOR_*`, and `DEMO_OUTSIDER_*` pairs in `.env`, obtains OIDC tokens, verifies tenant isolation, sends a structured report through the gateway, uploads and downloads an object, and advances a workflow using an operator role. It prints no passwords or tokens. It can be rerun.
+
+The remaining `DEMO_*_USERNAME` and `DEMO_*_PASSWORD` pairs in `.env.example` are OpenCity staff and portal admin demo accounts. `opencity-backend/scripts/provision_roles.py` creates or updates them in the same Keycloak realm. Keep real passwords only in ignored `.env`; never commit that file. `DEMO_ADMIN_*` signs in to the OpenCity `/admin` page, while `KEYCLOAK_ADMIN_PASSWORD` belongs to the separate Keycloak master administrator.
 
 To run the full OpenCity application, start the combined Compose stack from the sibling [OpenCity Backend](https://github.com/HouHackathon-CHP/opencity-backend) repository using its `compose.stack.yaml`, then run this smoke script followed by `opencity-backend/scripts/smoke_app.py`. See the backend README for commands and the [web frontend](https://github.com/HouHackathon-CHP/opencity-frontend) and [Android app](https://github.com/HouHackathon-CHP/opencity-mobile) READMEs for their own launch steps.
 
