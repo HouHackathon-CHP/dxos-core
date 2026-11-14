@@ -23,7 +23,9 @@ docker compose up --build -d
 python scripts/smoke.py
 ```
 
-The smoke script registers the managed `tenant_id` Keycloak user attribute, checks the browser client and CORS settings, creates three local users from passwords in `.env`, obtains OIDC tokens, verifies tenant isolation, sends a structured report through the gateway, uploads and downloads an object, and advances a workflow using an operator role. It prints no passwords or tokens. It can be rerun.
+The smoke script registers the managed `tenant_id` Keycloak user attribute, checks the browser client and CORS settings, creates three local users from the `DEMO_CITIZEN_*`, `DEMO_OPERATOR_*`, and `DEMO_OUTSIDER_*` pairs in `.env`, obtains OIDC tokens, verifies tenant isolation, sends a structured report through the gateway, uploads and downloads an object, and advances a workflow using an operator role. It prints no passwords or tokens. It can be rerun.
+
+The remaining `DEMO_*_USERNAME` and `DEMO_*_PASSWORD` pairs in `.env.example` are OpenCity staff and portal admin demo accounts. `opencity-backend/scripts/provision_roles.py` creates or updates them in the same Keycloak realm. Keep real passwords only in ignored `.env`; never commit that file. `DEMO_ADMIN_*` signs in to the OpenCity `/admin` page, while `KEYCLOAK_ADMIN_PASSWORD` belongs to the separate Keycloak master administrator.
 
 To run the full OpenCity application, start the combined Compose stack from the sibling [OpenCity Backend](https://github.com/HouHackathon-CHP/opencity-backend) repository using its `compose.stack.yaml`, then run this smoke script followed by `opencity-backend/scripts/smoke_app.py`. See the backend README for commands and the [web frontend](https://github.com/HouHackathon-CHP/opencity-frontend) and [Android app](https://github.com/HouHackathon-CHP/opencity-mobile) READMEs for their own launch steps.
 
@@ -45,6 +47,8 @@ The `insight` service stays internal on the Compose network. `POST /analyze` acc
 - `POST /api/workflow/instances/{id}/actions/{action}`
 
 Application backends can be mounted behind the same authenticated edge with `EXTRA_UPSTREAMS`, a JSON object mapping a short route name to an internal HTTP URL (for example `{"opencity":"http://opencity-backend:8000"}`). These services receive only gateway-generated identity headers and the internal secret. The optional [OpenCity Backend](https://github.com/HouHackathon-CHP/opencity-backend) shows this integration; the core itself does not include city business rules.
+
+`PUBLIC_GET_ROUTES` optionally allows specific read-only application paths without a token. Its value is a JSON object such as `{"opencity":{"tenant":"demo","paths":["bulletins","bulletins/{id}"]}}`. The gateway accepts only configured application upstreams, matches `{id}` as one path segment, and sends a gateway-generated `anonymous` identity with the configured tenant and `public` role. Any request with an Authorization header must still pass normal token validation. All writes, unlisted paths, and generic `data`/`workflow` routes require a valid token. Review every public path for unpublished or tenant-private data before adding it; OpenCity declares its local demo allowlist in `compose.stack.yaml`.
 
 The gateway validates token signature, issuer, audience and authorized client, then derives the caller's user ID, tenant, optional `unit_id`, and roles from the signed token and injects internal headers. Tokens without a valid `tenant_id` claim or with a malformed `unit_id` are rejected. Data and workflow endpoints reject calls without the shared internal gateway secret. The generic `operator` role remains available to the core CLI smoke test; OpenCity uses `reports_dispatcher` for tenant-wide intake, `reports_operator` plus an admin-managed unit claim for report handlers, and separate feature roles for bulletins, surveys, appointments, administrative feedback and business feedback. The OpenCity backend checks those roles for each feature.
 

@@ -110,6 +110,48 @@ def test_gateway_registers_a_configured_app_upstream(monkeypatch):
         load_module("dxos_gateway_bad_upstream", ROOT / "gateway/app/main.py")
 
 
+def test_gateway_public_get_allowlist_keeps_writes_and_core_private(monkeypatch):
+    monkeypatch.setenv("EXTRA_UPSTREAMS", '{"opencity":"http://opencity-backend:8000"}')
+    monkeypatch.setenv("PUBLIC_GET_ROUTES", '{"opencity":{"tenant":"demo","paths":["bulletins","bulletins/{id}"]}}')
+    gateway = load_module("dxos_gateway_public_test", ROOT / "gateway/app/main.py")
+    monkeypatch.setattr(gateway, "INTERNAL_SECRET", "test-secret")
+    captured = {}
+
+    class FakeClient:
+        def __init__(self, **_):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_):
+            pass
+
+        async def request(self, method, url, **kwargs):
+            captured.update(kwargs["headers"])
+            return httpx.Response(200, json={"ok": True})
+
+    monkeypatch.setattr(gateway.httpx, "AsyncClient", FakeClient)
+    with TestClient(gateway.app) as client:
+        assert client.get("/api/opencity/bulletins", headers={"X-DXOS-Tenant": "other"}).status_code == 200
+        assert captured["X-DXOS-User"] == "anonymous"
+        assert captured["X-DXOS-Tenant"] == "demo"
+        assert captured["X-DXOS-Roles"] == "public"
+        assert captured["X-Internal-Secret"] == "test-secret"
+        assert client.get("/api/opencity/bulletins/123").status_code == 200
+        assert client.post("/api/opencity/bulletins", json={}).status_code == 401
+        assert client.get("/api/opencity/reports").status_code == 401
+        assert client.get("/api/data/records").status_code == 401
+        assert client.get("/api/opencity/bulletins", headers={"Authorization": "Basic invalid"}).status_code == 401
+    assert gateway.public_tenant_for("opencity", "bulletins/../reports") is None
+
+
+def test_gateway_rejects_public_routes_for_core_services(monkeypatch):
+    monkeypatch.setenv("PUBLIC_GET_ROUTES", '{"data":{"tenant":"demo","paths":["records"]}}')
+    with pytest.raises(ValueError, match="Invalid public route"):
+        load_module("dxos_gateway_bad_public", ROOT / "gateway/app/main.py")
+
+
 def test_gateway_validates_audience_and_client(monkeypatch):
     gateway = load_module("dxos_gateway_jwt_test", ROOT / "gateway/app/main.py")
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
