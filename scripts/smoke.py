@@ -275,12 +275,15 @@ def main() -> None:
     else:
         raise RuntimeError("Gateway allowed another browser origin")
     # The demo realm may issue short-lived admin tokens; provisioning can take a minute.
-    ensure_user(admin_token(values["KEYCLOAK_ADMIN_PASSWORD"]), "dxos-citizen", values["DEMO_CITIZEN_PASSWORD"], "citizen", "demo")
-    ensure_user(admin_token(values["KEYCLOAK_ADMIN_PASSWORD"]), "dxos-operator", values["DEMO_OPERATOR_PASSWORD"], "operator", "demo")
-    ensure_user(admin_token(values["KEYCLOAK_ADMIN_PASSWORD"]), "dxos-outsider", values["DEMO_OUTSIDER_PASSWORD"], "citizen", "other")
-    citizen = token("dxos-citizen", values["DEMO_CITIZEN_PASSWORD"], "dxos-cli")
-    operator = token("dxos-operator", values["DEMO_OPERATOR_PASSWORD"], "dxos-cli")
-    outsider = token("dxos-outsider", values["DEMO_OUTSIDER_PASSWORD"], "dxos-cli")
+    citizen_username = values.get("DEMO_CITIZEN_USERNAME", "dxos-citizen")
+    operator_username = values.get("DEMO_OPERATOR_USERNAME", "dxos-operator")
+    outsider_username = values.get("DEMO_OUTSIDER_USERNAME", "dxos-outsider")
+    ensure_user(admin_token(values["KEYCLOAK_ADMIN_PASSWORD"]), citizen_username, values["DEMO_CITIZEN_PASSWORD"], "citizen", "demo")
+    ensure_user(admin_token(values["KEYCLOAK_ADMIN_PASSWORD"]), operator_username, values["DEMO_OPERATOR_PASSWORD"], "operator", "demo")
+    ensure_user(admin_token(values["KEYCLOAK_ADMIN_PASSWORD"]), outsider_username, values["DEMO_OUTSIDER_PASSWORD"], "citizen", "other")
+    citizen = token(citizen_username, values["DEMO_CITIZEN_PASSWORD"], "dxos-cli")
+    operator = token(operator_username, values["DEMO_OPERATOR_PASSWORD"], "dxos-cli")
+    outsider = token(outsider_username, values["DEMO_OUTSIDER_PASSWORD"], "dxos-cli")
 
     status, record = request("POST", f"{GATEWAY}/api/data/records", token=citizen, data={
         "kind": "environment-report",

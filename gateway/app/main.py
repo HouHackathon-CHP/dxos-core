@@ -39,6 +39,24 @@ for name, url in EXTRA_UPSTREAMS.items():
     ):
         raise ValueError("Invalid extra upstream definition")
     UPSTREAMS[name] = url
+PUBLIC_GET_ROUTES = json.loads(os.getenv("PUBLIC_GET_ROUTES", "{}"))
+if not isinstance(PUBLIC_GET_ROUTES, dict):
+    raise ValueError("PUBLIC_GET_ROUTES must be a JSON object")
+for service, definition in PUBLIC_GET_ROUTES.items():
+    if (
+        service not in EXTRA_UPSTREAMS
+        or not isinstance(definition, dict)
+        or not isinstance(definition.get("tenant"), str)
+        or not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", definition["tenant"])
+        or not isinstance(definition.get("paths"), list)
+        or not definition["paths"]
+        or any(
+            not isinstance(path, str)
+            or not re.fullmatch(r"[a-z0-9-]+(?:/(?:[a-z0-9-]+|\{id\}))*", path)
+            for path in definition["paths"]
+        )
+    ):
+        raise ValueError("Invalid public route definition")
 INTERNAL_SECRET = os.getenv("INTERNAL_GATEWAY_SECRET", "")
 JWK_CLIENT = PyJWKClient(JWKS_URL, cache_keys=True, timeout=5)
 
@@ -81,6 +99,21 @@ def claims_from_authorization(authorization: str | None) -> dict:
     return claims
 
 
+def public_tenant_for(service: str, path: str) -> str | None:
+    definition = PUBLIC_GET_ROUTES.get(service)
+    if definition is None:
+        return None
+    parts = path.split("/")
+    for template in definition["paths"]:
+        pattern = template.split("/")
+        if len(parts) == len(pattern) and all(
+            part == value or (part == "{id}" and bool(re.fullmatch(r"[A-Za-z0-9_.:-]{1,128}", value)))
+            for part, value in zip(pattern, parts)
+        ):
+            return definition["tenant"]
+    return None
+
+
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok", "service": "gateway"}
@@ -93,7 +126,12 @@ def health() -> dict:
 async def proxy(service: str, path: str, request: Request) -> Response:
     if service not in UPSTREAMS:
         raise HTTPException(status_code=404, detail="Unknown service")
-    claims = claims_from_authorization(request.headers.get("authorization"))
+    authorization = request.headers.get("authorization")
+    public_tenant = public_tenant_for(service, path) if request.method == "GET" and not authorization else None
+    claims = (
+        {"sub": "anonymous", "tenant_id": public_tenant, "realm_access": {"roles": ["public"]}, "azp": "public"}
+        if public_tenant is not None else claims_from_authorization(authorization)
+    )
     if service in {"data", "workflow"} and claims.get("azp") != "dxos-cli":
         raise HTTPException(status_code=403, detail="Use an application API for this client")
     roles = claims.get("realm_access", {}).get("roles", [])
