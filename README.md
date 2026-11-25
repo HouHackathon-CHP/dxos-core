@@ -8,7 +8,6 @@ Headless open-source core for the HouHackathon-CHP OLP 2026 project. This reposi
 | `gateway/` | FastAPI + Keycloak JWKS | JWT validation and routing to internal APIs |
 | `data/` | FastAPI + PostgreSQL + SeaweedFS S3 | Tenant-scoped JSON records, change history and object upload/download |
 | `workflow/` | FastAPI + PostgreSQL | File-defined JSON workflow, transitions and history |
-| `insight/` | FastAPI + Python standard library | Internal text classification and similar-text ranking for domain backends |
 
 The `report-handling` definition is only a demonstration of the generic workflow API. The core contains no end-user interface or OpenCity business rules.
 
@@ -39,7 +38,7 @@ The only published development ports are `127.0.0.1:8000` (API gateway) and `127
 
 ## API sketch
 
-The `insight` service stays internal on the Compose network. `POST /analyze` accepts declared labels, training examples and optional candidate texts. It returns Multinomial Naive Bayes rankings and TF-IDF cosine similar-text matches. Scores rank options within one request and are not calibrated probabilities. Domain backends supply tenant-scoped examples and decide how to use the result; this service keeps no case data.
+Application-specific AI runs outside this core. The sibling [OpenCity AI](https://github.com/HouHackathon-CHP/opencity-ai) service provides report classification, urgency ranking and similar-case detection; [OpenCity Backend](https://github.com/HouHackathon-CHP/opencity-backend) calls it after enforcing tenant and role access. The core continues to provide identity, API routing, data and workflow services independently of AI.
 
 - `POST /api/data/records`, `GET /api/data/records`, `GET /api/data/records/{id}`, `PATCH /api/data/records/{id}`, `GET /api/data/records/{id}/history`
 - `POST /api/data/objects?record_id={id}`, `GET /api/data/objects/{id}`
