@@ -21,9 +21,12 @@ if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 # Replace all values in .env with local random secrets.
 docker compose up --build -d
 python scripts/smoke.py
+python scripts/configure_registration.py
 ```
 
 The smoke script registers the managed `tenant_id` Keycloak user attribute, checks the browser client and CORS settings, creates three local users from the `DEMO_CITIZEN_*`, `DEMO_OPERATOR_*`, and `DEMO_OUTSIDER_*` pairs in `.env`, obtains OIDC tokens, verifies tenant isolation, sends a structured report through the gateway, uploads and downloads an object, and advances a workflow using an operator role. It prints no passwords or tokens. It can be rerun.
+
+`configure_registration.py` enables citizen self-registration in both fresh and existing local Keycloak realms. New accounts get the `citizen` role and inherit the local `demo` tenant from a default Keycloak group. Explicit tenant attributes on managed users take precedence. Keycloak's built-in registration form is used by web and Android via OIDC `prompt=create`. This local demo has no outbound mail verification; configure email verification and abuse protection before Internet deployment.
 
 The remaining `DEMO_*_USERNAME` and `DEMO_*_PASSWORD` pairs in `.env.example` are OpenCity staff and portal admin demo accounts. `opencity-backend/scripts/provision_roles.py` creates or updates them in the same Keycloak realm. Keep real passwords only in ignored `.env`; never commit that file. `DEMO_ADMIN_*` signs in to the OpenCity `/admin` page, while `KEYCLOAK_ADMIN_PASSWORD` belongs to the separate Keycloak master administrator.
 
