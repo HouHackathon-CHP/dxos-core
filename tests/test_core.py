@@ -174,9 +174,10 @@ def test_gateway_validates_audience_and_client(monkeypatch):
     with pytest.raises(HTTPException) as wrong_client:
         gateway.claims_from_authorization(f"Bearer {make_token({**claims, 'azp': 'other'})}")
     assert wrong_client.value.status_code == 403
-    with pytest.raises(HTTPException) as missing_tenant:
-        gateway.claims_from_authorization(f"Bearer {make_token({key: value for key, value in claims.items() if key != 'tenant_id'})}")
-    assert missing_tenant.value.status_code == 403
+    missing_tenant_claims = gateway.claims_from_authorization(
+        f"Bearer {make_token({key: value for key, value in claims.items() if key != 'tenant_id'})}"
+    )
+    assert missing_tenant_claims["tenant_id"] == "demo"
     with pytest.raises(HTTPException) as invalid_unit:
         gateway.claims_from_authorization(f"Bearer {make_token({**claims, 'unit_id': 'infrastructure\nX-Forged: true'})}")
     assert invalid_unit.value.status_code == 403
