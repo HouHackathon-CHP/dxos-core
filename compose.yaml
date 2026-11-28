@@ -39,7 +39,7 @@ services:
       KC_HOSTNAME: http://localhost:8081
       KC_HTTP_ENABLED: "true"
     ports:
-      - "127.0.0.1:8081:8080"
+      - "8081:8080"
     volumes:
       - ./identity/realm.json:/opt/keycloak/data/import/realm.json:ro
     depends_on:
@@ -82,7 +82,7 @@ services:
       WORKFLOW_URL: http://workflow:8000
       INTERNAL_GATEWAY_SECRET: ${INTERNAL_GATEWAY_SECRET}
     ports:
-      - "127.0.0.1:8000:8000"
+      - "8000:8000"
     depends_on:
       - identity
       - data

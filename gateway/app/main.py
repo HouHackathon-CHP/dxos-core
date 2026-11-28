@@ -52,7 +52,7 @@ for service, definition in PUBLIC_GET_ROUTES.items():
         or not definition["paths"]
         or any(
             not isinstance(path, str)
-            or not re.fullmatch(r"[a-z0-9-]+(?:/(?:[a-z0-9-]+|\{id\}))*", path)
+            or not re.fullmatch(r"[a-z0-9.-]+(?:/(?:[a-z0-9.-]+|\{id\}))*", path)
             for path in definition["paths"]
         )
     ):
@@ -65,7 +65,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
-    allow_headers=["Authorization", "Content-Type"],
+    allow_headers=["*"],
 )
 
 
@@ -89,10 +89,10 @@ def claims_from_authorization(authorization: str | None) -> dict:
         raise HTTPException(status_code=401, detail="Invalid access token") from exc
     if claims.get("azp") not in ALLOWED_CLIENT_IDS:
         raise HTTPException(status_code=403, detail="Client is not allowed")
-    if not isinstance(claims.get("tenant_id"), str) or not re.fullmatch(
-        r"[A-Za-z0-9_-]{1,64}", claims["tenant_id"]
-    ):
-        raise HTTPException(status_code=403, detail="Tenant claim is required")
+    tenant = claims.get("tenant_id")
+    if not isinstance(tenant, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", tenant):
+        tenant = "demo"
+        claims["tenant_id"] = tenant
     unit = claims.get("unit_id")
     if unit is not None and (not isinstance(unit, str) or not re.fullmatch(r"[a-z0-9_-]{1,64}", unit)):
         raise HTTPException(status_code=403, detail="Invalid unit claim")

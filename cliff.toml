@@ -1,0 +1,85 @@
+# Configuration for git-cliff
+# https://git-cliff.org/docs/configuration
+
+[changelog]
+header = """
+# Nhật ký thay đổi
+
+Tất cả các thay đổi đáng chú ý của dự án này sẽ được ghi lại trong file này.
+
+Định dạng dựa trên [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+và dự án này tuân thủ [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+"""
+
+body = """
+{% if version %}\
+## [{{ version | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
+{% else %}\
+## Chưa phát hành
+{% endif %}\
+{% set_global breaking_changes = commits | filter(attribute="breaking", value=true) %}\
+{% if breaking_changes | length > 0 %}\
+
+### Breaking Changes
+{% for commit in breaking_changes -%}
+- {{ commit.message | split(pat="\n") | first | trim }}\
+{% if commit.author.email == "100331812+ourstorycomic@users.noreply.github.com" or commit.author.email == "kaz442197@gmail.com" %} - Nguyễn Hà Phương ([@ourstorycomic](https://github.com/ourstorycomic))\
+{% elif commit.author.email == "trantrongchien05@gmail.com" %} - Trần Trọng Chiến ([@blueMonkey23](https://github.com/blueMonkey23))\
+{% elif commit.author.name is matching("(?i)hieu") %} - Trương Ngọc Hiểu ([@hieutnago](https://github.com/hieutnago))\
+{% else %} - {{ commit.author.name }}\
+{% endif %} in [{{ commit.id | truncate(length=7, end="") }}](https://github.com/HouHackathon-CHP/dxos-core/commit/{{ commit.id }})
+{% endfor -%}
+{% endif %}\
+{% for group, commits in commits | group_by(attribute="group") %}
+### {{ group }}
+{% for commit in commits -%}
+- {% if commit.scope %}**{{ commit.scope }}**: {% endif %}{{ commit.message | split(pat="\n") | first | trim }}\
+{% if commit.author.email == "100331812+ourstorycomic@users.noreply.github.com" or commit.author.email == "kaz442197@gmail.com" %} - Nguyễn Hà Phương ([@ourstorycomic](https://github.com/ourstorycomic))\
+{% elif commit.author.email == "trantrongchien05@gmail.com" %} - Trần Trọng Chiến ([@blueMonkey23](https://github.com/blueMonkey23))\
+{% elif commit.author.name is matching("(?i)hieu") %} - Trương Ngọc Hiểu ([@hieutnago](https://github.com/hieutnago))\
+{% else %} - {{ commit.author.name }}\
+{% endif %} in [{{ commit.id | truncate(length=7, end="") }}](https://github.com/HouHackathon-CHP/dxos-core/commit/{{ commit.id }})
+{% endfor -%}
+{% endfor %}
+"""
+
+footer = """
+---
+*Changelog được tạo tự động bởi [git-cliff](https://git-cliff.org). Xem hướng dẫn tại [docs/GIT_CLIFF_GUIDE.md](docs/GIT_CLIFF_GUIDE.md)*
+"""
+
+trim = true
+
+[git]
+conventional_commits = true
+filter_unconventional = false
+split_commits = false
+commit_parsers = [
+    { message = "^feat", group = "Đã thêm" },
+    { message = "^fix", group = "Đã sửa" },
+    { message = "^doc", group = "Tài liệu" },
+    { message = "^perf", group = "Hiệu năng" },
+    { message = "^refactor", group = "Đã thay đổi" },
+    { message = "^style", group = "Giao diện & Định dạng" },
+    { message = "^test", group = "Kiểm thử" },
+    { message = "^chore\\(release\\): prepare for", skip = true },
+    { message = "^chore\\(deps\\)", skip = true },
+    { message = "^docs\\(changelog\\)", skip = true },
+    { message = "^chore", group = "Bảo trì" },
+    { message = "^ci", group = "CI/CD" },
+    { message = "^build", group = "Build" },
+    { message = "^revert", group = "Hoàn tác" },
+    { message = ".*", group = "Các thay đổi khác" },
+]
+protect_breaking_commits = false
+filter_commits = false
+tag_pattern = "^v?[0-9]+\\.[0-9]+\\.[0-9]+"
+skip_tags = ""
+ignore_tags = ""
+topo_order = false
+sort_commits = "newest"
+
+[remote.github]
+owner = "HouHackathon-CHP"
+repo = "dxos-core"
